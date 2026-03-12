@@ -3,68 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Penngolf Caddy Elite</title>
+    <title>Penngolf Pro Caddy</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root { --primary: #2ecc71; --bg: #121212; --card: #1e1e1e; --accent: #3498db; }
+        :root { --primary: #2ecc71; --bg: #121212; --card: #1e1e1e; --accent: #3498db; --danger: #e74c3c; }
         body { margin: 0; font-family: -apple-system, sans-serif; background: var(--bg); color: white; overflow: hidden; touch-action: manipulation; }
-        #map { height: 35vh; width: 100%; background: #222; border-bottom: 2px solid var(--primary); }
-        #ui-container { height: 65vh; padding: 12px; box-sizing: border-box; overflow-y: auto; padding-bottom: 100px; }
+        
+        /* Map & UI Split */
+        #map { height: 38vh; width: 100%; background: #222; border-bottom: 2px solid var(--primary); }
+        #ui-container { height: 62vh; padding: 12px; box-sizing: border-box; overflow-y: auto; padding-bottom: 100px; }
 
+        /* Status & GPS Errors */
+        #gps-error { position: fixed; top: 0; width: 100%; background: var(--danger); color: white; text-align: center; padding: 10px; z-index: 3000; display: none; font-weight: bold; }
+        
         .card { background: var(--card); border-radius: 12px; padding: 15px; border: 1px solid #333; margin-bottom: 10px; }
         .big-number { font-size: 42px; font-weight: 900; color: var(--primary); line-height: 1; }
         .label { color: #888; font-size: 10px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; }
 
-        /* Score Adjuster */
+        /* Controls */
         .score-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; }
-        .adjust-btn { width: 45px; height: 45px; border-radius: 50%; border: none; background: #333; color: white; font-size: 24px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .adjust-btn:active { background: #444; }
-        #h-score-display { font-size: 32px; font-weight: 900; width: 50px; text-align: center; }
-
-        .toggle-container { background: #333; border-radius: 20px; padding: 2px; display: flex; width: 80px; }
-        .toggle-btn { flex: 1; text-align: center; padding: 4px 0; border-radius: 18px; font-size: 9px; font-weight: bold; cursor: pointer; color: #888; }
-        .toggle-btn.active { background: var(--primary); color: black; }
+        .adjust-btn { width: 50px; height: 50px; border-radius: 50%; border: none; background: #333; color: white; font-size: 24px; font-weight: bold; display: flex; align-items: center; justify-content: center; }
         
-        .score-pill { background: #333; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 14px; }
-        .plus { color: #e74c3c; } .minus { color: var(--primary); } .even { color: #f1c40f; }
-
         .btn-group { display: flex; gap: 8px; margin-top: 8px; }
-        .par-btn { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #444; background: #252525; color: white; font-weight: bold; }
+        .par-btn { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #252525; color: white; font-weight: bold; }
         .par-btn.active { background: var(--accent); border-color: var(--accent); }
 
+        /* Shot Tracker */
         #shot-overlay { position: absolute; top: 15px; right: 60px; z-index: 1000; display: flex; align-items: center; gap: 10px; }
-        #live-shot-counter { background: rgba(0,0,0,0.8); padding: 8px 12px; border-radius: 15px; border: 1px solid var(--primary); font-weight: 900; font-size: 14px; color: var(--primary); display: none; }
-        #shot-btn { background: var(--primary); color: black; border: none; padding: 10px 18px; border-radius: 25px; font-weight: 900; }
-        #shot-btn.tracking { background: #e74c3c; color: white; }
+        #live-shot-counter { background: rgba(0,0,0,0.85); padding: 8px 12px; border-radius: 15px; border: 1px solid var(--primary); font-weight: 900; color: var(--primary); display: none; }
+        #shot-btn { background: var(--primary); color: black; border: none; padding: 10px 18px; border-radius: 25px; font-weight: 900; box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
+        #shot-btn.tracking { background: var(--danger); color: white; }
         
-        #locate-btn { position: absolute; top: 10px; right: 10px; z-index: 1000; background: white; border: none; border-radius: 8px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
-        #scorecard-modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.95); z-index: 2000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        /* Map Action Buttons */
+        #map-actions { position: absolute; top: 60px; right: 10px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+        .map-sub-btn { background: white; border: none; border-radius: 8px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+
+        #scorecard-modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.98); z-index: 2000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; color: white; }
-        th, td { border: 1px solid #444; padding: 8px; text-align: center; }
-        .main-btn { background: var(--primary); color: black; border: none; padding: 14px; border-radius: 10px; width: 100%; font-weight: 800; margin-top: 10px; cursor: pointer; }
+        th, td { border: 1px solid #444; padding: 10px; text-align: center; }
+        .main-btn { background: var(--primary); color: black; border: none; padding: 16px; border-radius: 12px; width: 100%; font-weight: 800; margin-top: 10px; font-size: 16px; }
     </style>
 </head>
 <body>
 
-    <button id="locate-btn" onclick="snapToUser()"><svg viewBox="0 0 24 24" width="24" height="24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg></button>
-    
+    <div id="gps-error">GPS Disabled. Please enable location for yardages.</div>
+
     <div id="shot-overlay">
         <div id="live-shot-counter">0 YDS</div>
         <button id="shot-btn" onclick="toggleShotTrack()">START SHOT</button>
+    </div>
+
+    <div id="map-actions">
+        <button class="map-sub-btn" onclick="snapToUser()">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06z"/></svg>
+        </button>
+        <button id="clear-target-btn" class="map-sub-btn" style="display:none; color:var(--danger);" onclick="clearTarget()">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
     </div>
 
     <div id="map"></div>
 
     <div id="ui-container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <div class="toggle-container">
-                <div id="unit-yds" class="toggle-btn active" onclick="setUnit('YDS')">YDS</div>
-                <div id="unit-mtr" class="toggle-btn" onclick="setUnit('MTR')">MTR</div>
-            </div>
-            <div id="live-total" class="score-pill even">TOT: E</div>
+            <div id="unit-toggle" class="label" style="background:#333; padding:5px 10px; border-radius:15px; color:var(--primary);" onclick="cycleUnits()">UNIT: YDS</div>
+            <div id="live-total" style="background:#333; padding:5px 12px; border-radius:15px; font-weight:800; font-size:12px;">TOT: E</div>
         </div>
 
-        <!-- Stats Card -->
         <div class="card">
             <div style="display: flex; justify-content: space-between; text-align: center;">
                 <div style="flex: 1;"><div class="label">Actual</div><div id="dist-raw" class="big-number">--</div></div>
@@ -73,24 +78,23 @@
             </div>
         </div>
 
-        <!-- New Finger-Friendly Scoring Card -->
         <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <span class="label">Hole <span id="hole-num" style="color:white; font-size:18px;">1</span></span>
-                <span class="label">Set Score</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <span class="label" style="font-size:14px;">Hole <span id="hole-num" style="color:white;">1</span></span>
+                <div class="btn-group" style="margin:0; width:60%;">
+                    <button class="par-btn" onclick="setPar(3, this)">3</button>
+                    <button class="par-btn active" onclick="setPar(4, this)">4</button>
+                    <button class="par-btn" onclick="setPar(5, this)">5</button>
+                </div>
             </div>
             
             <div class="score-row">
-                <button class="adjust-btn" onclick="adjustScore(-1)">−</button>
-                <div id="h-score-display">4</div>
-                <button class="adjust-btn" onclick="adjustScore(1)">+</button>
-            </div>
-
-            <div class="label" style="margin-bottom: 5px;">Hole Par</div>
-            <div class="btn-group" style="margin-bottom: 15px;">
-                <button class="par-btn" onclick="setPar(3, this)">3</button>
-                <button class="par-btn active" onclick="setPar(4, this)">4</button>
-                <button class="par-btn" onclick="setPar(5, this)">5</button>
+                <span class="label">Hole Score</span>
+                <div style="display:flex; align-items:center; gap:20px;">
+                    <button class="adjust-btn" onclick="adjustScore(-1)">−</button>
+                    <div id="h-score-display" style="font-size:32px; font-weight:900;">4</div>
+                    <button class="adjust-btn" onclick="adjustScore(1)">+</button>
+                </div>
             </div>
             <button class="main-btn" onclick="saveAndNext()">FINISH HOLE</button>
         </div>
@@ -99,12 +103,11 @@
         <button class="main-btn" style="background:#3498db; color:white;" onclick="downloadData()">DOWNLOAD ROUND</button>
     </div>
 
-    <!-- Modal Scorecard Remains the Same -->
     <div id="scorecard-modal">
-        <span style="float:right; font-size:30px; cursor:pointer;" onclick="toggleScorecard(false)">&times;</span>
-        <h2>Scorecard</h2>
-        <div id="total-summary" style="font-weight: bold; margin-bottom: 15px;"></div>
-        <table id="card-table"><thead><tr><th>Hole</th><th>Par</th><th>Score</th><th>+/-</th></tr></thead><tbody id="card-body"></tbody></table>
+        <span style="float:right; font-size:40px;" onclick="toggleScorecard(false)">&times;</span>
+        <h2 style="color:var(--primary)">Round Scorecard</h2>
+        <div id="total-summary" style="font-size:18px; margin-bottom:20px;"></div>
+        <table><thead><tr><th>Hole</th><th>Par</th><th>Score</th><th>+/-</th></tr></thead><tbody id="card-body"></tbody></table>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -115,32 +118,44 @@
         let userPos, targetPos, userMarker, targetMarker, targetLine, shotStartPos;
         let isTrackingShot = false, currentPar = 4, currentScore = 4, currentUnit = 'YDS';
         let roundData = { scores: [], totalPar: 0, totalScore: 0, shotLogs: [] };
+        let lastLoggedPos = null;
 
-        function setUnit(u) { 
-            currentUnit = u; 
-            document.getElementById('unit-yds').classList.toggle('active', u==='YDS'); 
-            document.getElementById('unit-mtr').classList.toggle('active', u==='MTR'); 
-            updateCalculations(); 
+        function haptic() { if(window.navigator.vibrate) window.navigator.vibrate(15); }
+
+        function cycleUnits() {
+            haptic();
+            currentUnit = (currentUnit === 'YDS') ? 'MTR' : 'YDS';
+            document.getElementById('unit-toggle').innerText = `UNIT: ${currentUnit}`;
+            updateCalculations(true);
         }
+
         function convert(m) { return currentUnit === 'YDS' ? Math.round(m * 1.09361) : Math.round(m); }
 
-        function adjustScore(val) {
-            currentScore = Math.max(1, currentScore + val);
-            document.getElementById('h-score-display').innerText = currentScore;
-        }
+        function adjustScore(v) { haptic(); currentScore = Math.max(1, currentScore + v); document.getElementById('h-score-display').innerText = currentScore; }
 
         function setPar(p, btn) { 
-            currentPar = p; 
-            currentScore = p; // Reset suggested score to match the new par
+            haptic(); currentPar = p; currentScore = p; 
             document.getElementById('h-score-display').innerText = currentScore;
             document.querySelectorAll('.par-btn').forEach(b => b.classList.remove('active')); 
             btn.classList.add('active'); 
         }
 
+        function clearTarget() {
+            haptic(); targetPos = null;
+            if (targetMarker) map.removeLayer(targetMarker);
+            if (targetLine) map.removeLayer(targetLine);
+            document.getElementById('clear-target-btn').style.display = 'none';
+            document.getElementById('dist-raw').innerText = '--';
+            document.getElementById('dist-plays').innerText = '--';
+            document.getElementById('slope-val').innerText = '0°';
+        }
+
         navigator.geolocation.watchPosition(pos => {
+            document.getElementById('gps-error').style.display = 'none';
             userPos = [pos.coords.latitude, pos.coords.longitude];
+            
             if (!userMarker) { 
-                userMarker = L.circleMarker(userPos, {radius: 8, color: 'white', fillColor: '#3498db', fillOpacity: 1, weight: 3}).addTo(map); 
+                userMarker = L.circleMarker(userPos, {radius: 9, color: 'white', fillColor: '#3498db', fillOpacity: 1, weight: 3}).addTo(map); 
                 map.setView(userPos, 19); 
             } else userMarker.setLatLng(userPos);
 
@@ -148,50 +163,61 @@
                 const liveDist = convert(map.distance(shotStartPos, userPos));
                 document.getElementById('live-shot-counter').innerText = `${liveDist} ${currentUnit}`;
             }
-            updateCalculations();
-        }, null, { enableHighAccuracy: true });
+
+            // Battery Optimization: Only update API if moved > 3 meters
+            if (!lastLoggedPos || map.distance(lastLoggedPos, userPos) > 3) {
+                updateCalculations();
+                lastLoggedPos = [...userPos];
+            }
+        }, err => {
+            document.getElementById('gps-error').style.display = 'block';
+        }, { enableHighAccuracy: true });
 
         map.on('click', e => {
+            haptic();
             targetPos = [e.latlng.lat, e.latlng.lng];
-            if (!targetMarker) targetMarker = L.circleMarker(targetPos, {radius: 6, color: '#2ecc71', fillColor: 'black', fillOpacity: 0.6}).addTo(map);
+            document.getElementById('clear-target-btn').style.display = 'flex';
+            if (!targetMarker) targetMarker = L.circleMarker(targetPos, {radius: 7, color: '#2ecc71', fillColor: 'black', fillOpacity: 0.7, weight: 3}).addTo(map);
             else targetMarker.setLatLng(targetPos);
-            updateCalculations();
+            updateCalculations(true);
         });
 
-        async function updateCalculations() {
+        async function updateCalculations(force = false) {
             if (!userPos || !targetPos) return;
             if (targetLine) map.removeLayer(targetLine);
-            targetLine = L.polyline([userPos, targetPos], {color: '#2ecc71', weight: 2, dashArray: '5,10'}).addTo(map);
+            targetLine = L.polyline([userPos, targetPos], {color: '#2ecc71', weight: 3, dashArray: '8, 12'}).addTo(map);
+            
             const m = map.distance(userPos, targetPos);
             document.getElementById('dist-raw').innerText = convert(m);
-            try {
-                const res = await fetch(`https://api.open-elevation.com/api/v1/lookup?locations=${userPos[0]},${userPos[1]}|${targetPos[0]},${targetPos[1]}`);
-                const data = await res.json();
-                const diff = data.results[1].elevation - data.results[0].elevation;
-                document.getElementById('slope-val').innerText = (Math.atan(diff / m) * (180 / Math.PI)).toFixed(1) + "°";
-                document.getElementById('dist-plays').innerText = convert(m + (diff * 1.1));
-            } catch(e) { document.getElementById('dist-plays').innerText = convert(m); }
+
+            if (force || !document.getElementById('dist-plays').innerText.includes('--')) {
+                try {
+                    const res = await fetch(`https://api.open-elevation.com/api/v1/lookup?locations=${userPos[0]},${userPos[1]}|${targetPos[0]},${targetPos[1]}`);
+                    const data = await res.json();
+                    const diff = data.results[1].elevation - data.results[0].elevation;
+                    document.getElementById('slope-val').innerText = (Math.atan(diff / m) * (180 / Math.PI)).toFixed(1) + "°";
+                    document.getElementById('dist-plays').innerText = convert(m + (diff * 1.1));
+                } catch(e) { document.getElementById('dist-plays').innerText = convert(m); }
+            }
         }
 
         function saveAndNext() {
+            haptic();
             const h = parseInt(document.getElementById('hole-num').innerText);
             roundData.scores.push({ h, par: currentPar, s: currentScore, diff: currentScore - currentPar });
             roundData.totalPar += currentPar; roundData.totalScore += currentScore;
-            updateLiveTotal();
-            document.getElementById('hole-num').innerText = h + 1;
-            // Keep the Par the same for next hole (usually 4), but reset score
-            currentScore = currentPar;
-            document.getElementById('h-score-display').innerText = currentScore;
-        }
-
-        function updateLiveTotal() {
+            
             const d = roundData.totalScore - roundData.totalPar;
             const el = document.getElementById('live-total');
             el.innerText = `TOT: ${d > 0 ? '+' + d : (d === 0 ? 'E' : d)}`;
-            el.className = `score-pill ${d > 0 ? 'plus' : (d === 0 ? 'even' : 'minus')}`;
+            el.style.color = d > 0 ? 'var(--danger)' : (d === 0 ? '#f1c40f' : 'var(--primary)');
+            
+            document.getElementById('hole-num').innerText = h + 1;
+            currentScore = 4; setPar(4, document.querySelectorAll('.par-btn')[1]);
         }
 
         function toggleScorecard(show) {
+            haptic();
             const m = document.getElementById('scorecard-modal');
             if (show) {
                 const b = document.getElementById('card-body'); b.innerHTML = "";
@@ -203,21 +229,17 @@
         }
 
         function toggleShotTrack() {
+            haptic();
             const btn = document.getElementById('shot-btn');
             const counter = document.getElementById('live-shot-counter');
             if (!isTrackingShot) { 
-                shotStartPos = [...userPos]; 
-                isTrackingShot = true; 
-                btn.innerText = "END SHOT"; 
-                btn.classList.add('tracking');
-                counter.style.display = "block";
-                counter.innerText = `0 ${currentUnit}`;
+                shotStartPos = [...userPos]; isTrackingShot = true; 
+                btn.innerText = "END SHOT"; btn.classList.add('tracking');
+                counter.style.display = "block"; counter.innerText = `0 ${currentUnit}`;
             } else { 
                 const d = convert(map.distance(shotStartPos, userPos));
                 roundData.shotLogs.push(`Hole ${document.getElementById('hole-num').innerText}: ${d} ${currentUnit}`);
-                isTrackingShot = false; 
-                btn.innerText = "START SHOT"; 
-                btn.classList.remove('tracking');
+                isTrackingShot = false; btn.innerText = "START SHOT"; btn.classList.remove('tracking');
                 counter.style.display = "none";
             }
         }
@@ -228,7 +250,7 @@
             const blob = new Blob([t], {type: 'text/plain'});
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'round.txt'; a.click();
         }
-        function snapToUser() { if (userPos) map.setView(userPos, 19); }
+        function snapToUser() { haptic(); if (userPos) map.setView(userPos, 19); }
     </script>
 </body>
 </html>
