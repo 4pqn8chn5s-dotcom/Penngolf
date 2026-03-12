@@ -125,15 +125,19 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const map = L.map('map', { zoomControl: false, maxZoom: 18, attributionControl: false }).setView([0,0], 2);
-        L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}.png', { subdomains: 'abcd' }).addTo(map);
+        // FIXED MAP PROVIDER: CartoDB Voyager (Stable & Keyless)
+        const map = L.map('map', { zoomControl: false, maxZoom: 19, attributionControl: false }).setView([0,0], 2);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
 
         let userPos, targetPos, userMarker, targetMarker, targetLine, shotStartPos;
         let currentPar = 4, currentScore = 4, currentUnit = 'YDS', activeEditHole = null, isTrackingShot = false;
         let roundData = { scores: [], shotLogs: [] };
         let myBag = { "Driver": 250, "3 Wood": 220, "5 Wood": 200, "4 Iron": 185, "5 Iron": 175, "6 Iron": 165, "7 Iron": 155, "8 Iron": 145, "9 Iron": 135, "PW": 120, "GW": 110, "SW": 95, "LW": 80 };
 
-        // PERSISTENCE
         if (localStorage.getItem('penngolfRound')) roundData = JSON.parse(localStorage.getItem('penngolfRound'));
         if (localStorage.getItem('penngolfBag')) myBag = JSON.parse(localStorage.getItem('penngolfBag'));
 
@@ -167,11 +171,9 @@
                 document.getElementById('dist-plays').innerText = conv(finalPlaysLike);
             } catch(e) { document.getElementById('dist-plays').innerText = conv(dist); }
 
-            // Club Recommendation Logic
-            const targetYardage = finalPlaysLike * 1.09361; // Always calculate logic in Yards
+            const targetYardage = finalPlaysLike * 1.09361;
             let bestClub = "No club found";
             let closestDiff = 999;
-
             Object.keys(myBag).forEach(club => {
                 let d = Math.abs(myBag[club] - targetYardage);
                 if (d < closestDiff) { closestDiff = d; bestClub = club; }
@@ -179,7 +181,6 @@
             document.getElementById('club-recommendation').innerText = `PULL ${bestClub.toUpperCase()}`;
         }
 
-        // Standard Utility Functions
         function setPar(p, btn) { currentPar = p; currentScore = p; document.getElementById('h-score-display').innerText = p; document.querySelectorAll('.par-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
         function adjustScore(v) { currentScore = Math.max(1, currentScore + v); document.getElementById('h-score-display').innerText = currentScore; }
         function saveAndNext() {
