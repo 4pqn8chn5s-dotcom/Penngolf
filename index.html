@@ -3,24 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Elite Golf GPS</title>
+    <title>Elite Golf GPS + Auto-Mapper</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root { --primary: #2ecc71; --bg: #121212; --card: #1e1e1e; }
+        :root { --primary: #2ecc71; --bg: #121212; --card: #1e1e1e; --accent: #3498db; }
         body { margin: 0; font-family: -apple-system, sans-serif; background: var(--bg); color: white; overflow: hidden; touch-action: manipulation; }
-        #map { height: 50vh; width: 100%; border-bottom: 2px solid var(--primary); background: #222; }
-        #ui-container { height: 50vh; overflow-y: auto; padding: 12px; box-sizing: border-box; padding-bottom: 50px; }
-        .card { background: var(--card); border-radius: 12px; padding: 12px; margin-bottom: 10px; border: 1px solid #333; }
+        #map { height: 42vh; width: 100%; border-bottom: 2px solid var(--primary); background: #222; }
+        #ui-container { height: 58vh; overflow-y: auto; padding: 12px; box-sizing: border-box; padding-bottom: 100px; }
+        
+        .toggle-container { background: #333; border-radius: 20px; padding: 2px; display: flex; width: 80px; }
+        .toggle-btn { flex: 1; text-align: center; padding: 4px 0; border-radius: 18px; font-size: 9px; font-weight: bold; cursor: pointer; }
+        .toggle-btn.active { background: var(--primary); color: black; }
+
+        .card { background: var(--card); border-radius: 12px; padding: 12px; margin-bottom: 10px; border: 1px solid #333; position: relative; }
         .row { display: flex; justify-content: space-between; align-items: center; margin: 5px 0; }
         .big-number { font-size: 32px; font-weight: 800; color: var(--primary); }
         .label { color: #888; font-size: 10px; text-transform: uppercase; font-weight: bold; }
-        .stat-box { text-align: center; flex: 1; }
         
+        #strategy-box { background: #1a252f; border-radius: 8px; padding: 10px; margin-top: 10px; border-left: 4px solid var(--accent); }
+        #strategy-text { font-size: 13px; font-style: italic; color: #ecf0f1; }
+
         #shot-overlay { position: absolute; top: 15px; right: 15px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; }
         #shot-btn { background: var(--primary); color: black; border: none; padding: 12px 20px; border-radius: 50px; font-weight: 900; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
-        #shot-dist-display { background: rgba(0,0,0,0.8); padding: 5px 15px; border-radius: 20px; margin-top: 5px; font-weight: bold; display: none; border: 1px solid var(--primary); }
+        #shot-dist-display { background: rgba(0,0,0,0.85); padding: 5px 15px; border-radius: 20px; margin-top: 5px; font-weight: bold; display: none; border: 1px solid var(--primary); }
 
-        button.main-btn { background: var(--primary); color: black; border: none; padding: 14px; border-radius: 10px; width: 100%; font-weight: 800; }
+        button.main-btn { background: var(--primary); color: black; border: none; padding: 14px; border-radius: 10px; width: 100%; font-weight: 800; cursor: pointer; }
+        .save-btn { background: #444; color: #fff; margin-top: 10px; font-size: 12px; padding: 10px; border-radius: 8px; border: none; width: 100%; }
         input { background: #333; border: none; color: white; padding: 8px; width: 40px; border-radius: 6px; text-align: center; font-size: 16px; }
         .log-item { background: #252525; padding: 8px; border-radius: 8px; margin-top: 5px; font-size: 12px; display: flex; justify-content: space-between; border-left: 3px solid var(--primary); }
     </style>
@@ -35,29 +43,41 @@
     <div id="map"></div>
 
     <div id="ui-container">
-        <!-- Distances -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="label" id="course-status" style="color: var(--accent);">Locating Course...</div>
+            <div class="toggle-container">
+                <div id="unit-yds" class="toggle-btn active" onclick="setUnit('YDS')">YDS</div>
+                <div id="unit-mtr" class="toggle-btn" onclick="setUnit('MTR')">MTR</div>
+            </div>
+        </div>
+
         <div class="card">
             <div class="row">
-                <div class="stat-box">
+                <div style="text-align: center; flex: 1;">
                     <div class="label">Actual</div>
                     <div id="dist-raw" class="big-number">--</div>
                 </div>
-                <div class="stat-box" style="border-left: 1px solid #333; border-right: 1px solid #333;">
+                <div style="text-align: center; flex: 1; border-left: 1px solid #444; border-right: 1px solid #444;">
                     <div class="label">Plays Like</div>
                     <div id="plays-like" class="big-number">--</div>
                 </div>
-                <div class="stat-box">
+                <div style="text-align: center; flex: 1;">
                     <div class="label">Club</div>
                     <div id="club-rec" class="big-number" style="font-size: 22px;">--</div>
                 </div>
             </div>
+            
+            <div id="strategy-box">
+                <div class="label" style="color: var(--accent); margin-bottom: 4px;">Caddy Strategy</div>
+                <div id="strategy-text">Tap any mapped tee/green or manual spot.</div>
+            </div>
+
             <div class="row" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #333;">
                 <span class="label">Slope: <b id="slope-val" style="color: white;">0°</b></span>
-                <span class="label" id="target-status">Tap Map for Target</span>
+                <span class="label" id="target-status" style="color: var(--primary);">Standby</span>
             </div>
         </div>
 
-        <!-- Score & Tools -->
         <div class="card">
             <div class="row">
                 <span style="font-weight: bold;">Hole <span id="hole-num">1</span></span>
@@ -69,75 +89,108 @@
             <button class="main-btn" style="background:#333; color:white; margin-top:10px;" onclick="saveHole()">FINISH HOLE</button>
         </div>
 
-        <div class="label" style="margin-left:5px;">Shot History</div>
+        <div class="label" style="margin-left:5px;">Shot Log</div>
         <div id="shot-log"></div>
+        <button class="save-btn" onclick="downloadRound()">💾 EXPORT ROUND</button>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const map = L.map('map', { zoomControl: false }).setView([0, 0], 2);
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Esri'
-        }).addTo(map);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri' }).addTo(map);
 
         let userMarker, targetMarker, targetLine;
         let userPos = null, targetPos = null, shotStartPos = null;
-        let isTrackingShot = false;
+        let isTrackingShot = false, currentUnit = 'YDS', hasScanned = false;
+        let fullScorecard = [], trackedShots = [];
 
-        function getDistanceYds(p1, p2) {
-            const R = 6371000;
-            const dLat = (p2[0] - p1[0]) * Math.PI / 180;
-            const dLon = (p2[1] - p1[1]) * Math.PI / 180;
-            const a = Math.sin(dLat/2)**2 + Math.cos(p1[0]*Math.PI/180) * Math.cos(p2[0]*Math.PI/180) * Math.sin(dLon/2)**2;
-            return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)) * 1.09361);
-        }
+        function setUnit(u) { currentUnit = u; document.getElementById('unit-yds').className = u==='YDS'?'toggle-btn active':'toggle-btn'; document.getElementById('unit-mtr').className = u==='MTR'?'toggle-btn active':'toggle-btn'; updateCalculations(); }
+        function convert(m) { return currentUnit === 'YDS' ? Math.round(m * 1.09361) : Math.round(m); }
 
-        // GPS Logic
         navigator.geolocation.watchPosition((pos) => {
             userPos = [pos.coords.latitude, pos.coords.longitude];
             if (!userMarker) {
                 userMarker = L.circleMarker(userPos, {radius: 8, color: '#fff', fillColor: '#2ecc71', fillOpacity: 1, weight: 3}).addTo(map);
                 map.setView(userPos, 18);
-            } else { userMarker.setLatLng(userPos); }
-            if (isTrackingShot) {
-                document.getElementById('shot-dist-display').innerText = getDistanceYds(shotStartPos, userPos) + " YDS";
-            }
+            } else userMarker.setLatLng(userPos);
+            
+            if (!hasScanned) { scanCourseFeatures(userPos[0], userPos[1]); hasScanned = true; }
+            if (isTrackingShot) document.getElementById('shot-dist-display').innerText = `${convert(getDist(shotStartPos, userPos))} ${currentUnit}`;
             updateCalculations();
         }, null, { enableHighAccuracy: true });
 
-        // Target Logic
-        map.on('click', (e) => {
-            targetPos = [e.latlng.lat, e.latlng.lng];
-            if (!targetMarker) {
-                targetMarker = L.circleMarker(targetPos, {radius: 6, color: '#2ecc71', fillColor: '#000', fillOpacity: 0.5}).addTo(map);
-            } else { targetMarker.setLatLng(targetPos); }
-            document.getElementById('target-status').innerText = "Target Locked";
+        // AUTO-MAPPER ENGINE
+        async function scanCourseFeatures(lat, lng) {
+            const query = `[out:json];(node["golf"~"tee|green"](around:1000,${lat},${lng});way["golf"~"tee|green"](around:1000,${lat},${lng}););out center;`;
+            try {
+                const res = await fetch(`https://overpass-api.de/api/overpass?data=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                data.elements.forEach(el => {
+                    const pos = el.type === 'node' ? [el.lat, el.lon] : [el.center.lat, el.center.lon];
+                    const isGreen = el.tags.golf === 'green';
+                    const marker = L.circleMarker(pos, {
+                        radius: isGreen ? 7 : 5,
+                        color: isGreen ? '#2ecc71' : '#fff',
+                        fillColor: isGreen ? '#1e1e1e' : '#fff',
+                        fillOpacity: 0.6,
+                        weight: 2
+                    }).addTo(map);
+                    
+                    marker.on('click', (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        setTarget(pos);
+                    });
+                });
+                document.getElementById('course-status').innerText = data.elements.length > 0 ? "Course Data Loaded" : "Manual Mode";
+            } catch (e) { document.getElementById('course-status').innerText = "Manual Mode"; }
+        }
+
+        map.on('click', (e) => setTarget([e.latlng.lat, e.latlng.lng]));
+
+        function setTarget(pos) {
+            targetPos = pos;
+            if (!targetMarker) targetMarker = L.circleMarker(targetPos, {radius: 6, color: '#2ecc71', fillColor: '#000', fillOpacity: 0.5}).addTo(map);
+            else targetMarker.setLatLng(targetPos);
+            document.getElementById('target-status').innerText = "Locked";
             updateCalculations();
-        });
+        }
+
+        function getDist(p1, p2) {
+            const R = 6371000;
+            const dLat = (p2[0]-p1[0])*Math.PI/180; const dLon = (p2[1]-p1[1])*Math.PI/180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(p1[0]*Math.PI/180)*Math.cos(p2[0]*Math.PI/180)*Math.sin(dLon/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
 
         async function updateCalculations() {
             if (!userPos || !targetPos) return;
             if (targetLine) map.removeLayer(targetLine);
             targetLine = L.polyline([userPos, targetPos], {color: '#2ecc71', weight: 1, dashArray: '5,5'}).addTo(map);
 
-            const dist = getDistanceYds(userPos, targetPos);
-            document.getElementById('dist-raw').innerText = dist;
+            const mtrs = getDist(userPos, targetPos);
+            const yards = mtrs * 1.09361;
+            document.getElementById('dist-raw').innerText = convert(mtrs);
 
             try {
                 const res = await fetch(`https://api.open-elevation.com/api/v1/lookup?locations=${userPos[0]},${userPos[1]}|${targetPos[0]},${targetPos[1]}`);
                 const data = await res.json();
                 const elevDiff = data.results[1].elevation - data.results[0].elevation;
-                const slope = (Math.atan(elevDiff / (dist/1.09)) * (180 / Math.PI)).toFixed(1);
-                const playsLike = Math.round(dist + (elevDiff * 3.28));
+                const slope = (Math.atan(elevDiff / mtrs) * (180 / Math.PI)).toFixed(1);
+                const adjYards = yards + (elevDiff * 3.28); 
                 
                 document.getElementById('slope-val').innerText = slope + "°";
-                document.getElementById('plays-like').innerText = playsLike;
+                document.getElementById('plays-like').innerText = convert(adjYards / 1.09361);
+
+                let strat = "Aim for the fat part of the green.";
+                if (slope > 2) strat = "Uphill: Ball flies shorter. Take extra club.";
+                else if (slope < -2) strat = "Downhill: Aim short and let it run up.";
+                document.getElementById('strategy-text').innerText = strat;
 
                 const clubs = [[230,"DR"],[205,"3W"],[185,"4i"],[170,"5i"],[155,"6i"],[140,"7i"],[125,"8i"],[110,"9i"],[95,"PW"]];
                 let rec = "WED";
-                for (let [d, c] of clubs) { if (playsLike >= d) { rec = c; break; } }
+                for (let [d, c] of clubs) { if (adjYards >= d) { rec = c; break; } }
                 document.getElementById('club-rec').innerText = rec;
-            } catch (e) { document.getElementById('plays-like').innerText = dist; }
+            } catch (e) { document.getElementById('plays-like').innerText = convert(mtrs); }
         }
 
         function toggleShotTrack() {
@@ -147,24 +200,37 @@
                 shotStartPos = [...userPos]; isTrackingShot = true;
                 btn.innerText = "END SHOT"; btn.style.background = "#e74c3c"; disp.style.display = "block";
             } else {
-                const final = getDistanceYds(shotStartPos, userPos);
+                const final = convert(getDist(shotStartPos, userPos));
+                trackedShots.push(`${final} ${currentUnit}`);
                 const item = document.createElement('div');
                 item.className = 'log-item';
-                item.innerHTML = `<span>Shot</span> <b>${final} YDS</b>`;
+                item.innerHTML = `<span>Shot</span> <b>${final} ${currentUnit}</b>`;
                 document.getElementById('shot-log').prepend(item);
                 isTrackingShot = false; btn.innerText = "START SHOT"; btn.style.background = "#2ecc71"; disp.style.display = "none";
             }
         }
 
         function saveHole() {
-            const h = document.getElementById('hole-num');
-            h.innerText = parseInt(h.innerText) + 1;
+            const hNum = document.getElementById('hole-num').innerText;
+            fullScorecard.push({ hole: hNum, score: document.getElementById('h-score').value, putts: document.getElementById('h-putts').value });
+            document.getElementById('hole-num').innerText = parseInt(hNum) + 1;
             if (targetMarker) map.removeLayer(targetMarker);
             if (targetLine) map.removeLayer(targetLine);
             targetPos = null;
             document.getElementById('dist-raw').innerText = "--";
             document.getElementById('plays-like').innerText = "--";
             document.getElementById('club-rec').innerText = "--";
+        }
+
+        function downloadRound() {
+            let content = "GOLF ROUND SUMMARY\n\n";
+            fullScorecard.forEach(h => content += `Hole ${h.hole}: ${h.score} (${h.putts} putts)\n`);
+            content += "\nSHOTS: " + trackedShots.join(", ");
+            const blob = new Blob([content], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `round_${new Date().toISOString().slice(0,10)}.txt`;
+            a.click();
         }
     </script>
 </body>
