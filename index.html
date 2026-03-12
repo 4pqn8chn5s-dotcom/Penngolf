@@ -122,9 +122,12 @@
         <span style="float:right; font-size:40px; color:#555;" onclick="toggleBag(false)">&times;</span>
         <h2 style="color:var(--primary); font-family:'Press Start 2P'; font-size:10px; margin-top:30px;">Smart Bag Setup</h2>
         <div class="card" style="background:#222; margin-bottom:20px;">
-            <p class="label" style="color:var(--gold)">1. Calibration</p>
-            <div class="bag-row"><span>Driver (Total)</span><input type="number" id="cal-driver" value="250" onchange="autoGap()"></div>
-            <div class="bag-row"><span>7-Iron (Total)</span><input type="number" id="cal-7iron" value="150" onchange="autoGap()"></div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <p class="label" style="color:var(--gold)">1. Calibration</p>
+                <button id="bag-unit-btn" class="util-btn" style="padding:4px 8px; font-size:9px;" onclick="toggleBagUnit()">YDS</button>
+            </div>
+            <div class="bag-row"><span>Driver</span><input type="number" id="cal-driver" value="250" onchange="autoGap()"></div>
+            <div class="bag-row"><span>7-Iron</span><input type="number" id="cal-7iron" value="150" onchange="autoGap()"></div>
         </div>
         <p class="label">2. Your Clubs</p>
         <div id="bag-list"></div>
@@ -150,41 +153,69 @@
         // --- 1. CORE STATE ---
         const map = L.map('map', { zoomControl: false, maxZoom: 18, attributionControl: false }).setView([0,0], 2);
 
-        // Primary: ArcGIS Satellite
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
             maxNativeZoom: 18, maxZoom: 20
         }).addTo(map);
 
-        // Fallback/Labels: Clean OpenStreetMap (HOT) - ensures if Esri fails, we see course data
         L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{y}/{x}', {
             opacity: 0.4, maxZoom: 20
         }).addTo(map);
 
         let userPos, targetPos, userMarker, targetMarker, targetLine, shotStartPos;
-        let lastCalcPos = [0,0]; // For throttling
-        let currentPar = 4, currentScore = 4, currentUnit = 'YDS', activeEditHole = null, isTrackingShot = false;
+        let lastCalcPos = [0,0];
+        let currentPar = 4, currentScore = 4, currentUnit = 'YDS', bagUnit = 'YDS', activeEditHole = null, isTrackingShot = false;
         let roundData = JSON.parse(localStorage.getItem('penngolfRound')) || { scores: [], shotLogs: [] };
         
         const defaultBag = { "Driver": 250, "3 Wood": 225, "5 Wood": 205, "4 Iron": 185, "5 Iron": 175, "6 Iron": 165, "7 Iron": 150, "8 Iron": 140, "9 Iron": 130, "PW": 120, "GW": 110, "SW": 95, "LW": 80 };
         let myBag = JSON.parse(localStorage.getItem('penngolfBag')) || {...defaultBag};
         const ironOrder = ["3 Iron", "4 Iron", "5 Iron", "6 Iron", "7 Iron", "8 Iron", "9 Iron", "PW", "GW", "SW", "LW"];
 
-        // --- 2. LOGIC & THROTTLING ---
+        // --- 2. LOGIC & UNIT HANDLING ---
         function convDist(d) { return Math.round(currentUnit === 'YDS' ? d * 1.09361 : d); }
+
+        function toggleBagUnit() {
+            const newUnit = bagUnit === 'YDS' ? 'MTR' : 'YDS';
+            const dInput = document.getElementById('cal-driver');
+            const sInput = document.getElementById('cal-7iron');
+            if (newUnit === 'MTR') {
+                dInput.value = Math.round(dInput.value / 1.09361);
+                sInput.value = Math.round(sInput.value / 1.09361);
+            } else {
+                dInput.value = Math.round(dInput.value * 1.09361);
+                sInput.value = Math.round(sInput.value * 1.09361);
+            }
+            bagUnit = newUnit;
+            document.getElementById('bag-unit-btn').innerText = bagUnit;
+        }
+
+        function autoGap() {
+            let dDist = parseInt(document.getElementById('cal-driver').value) || 250;
+            let sDist = parseInt(document.getElementById('cal-7iron').value) || 150;
+            if (bagUnit === 'MTR') {
+                dDist = Math.round(dDist * 1.09361);
+                sDist = Math.round(sDist * 1.09361);
+            }
+            if(myBag["Driver"]) myBag["Driver"] = dDist;
+            if(myBag["3 Wood"]) myBag["3 Wood"] = dDist - 25;
+            if(myBag["5 Wood"]) myBag["5 Wood"] = dDist - 45;
+            ironOrder.forEach((club, index) => {
+                if (myBag[club]) {
+                    const offset = index - ironOrder.indexOf("7 Iron");
+                    myBag[club] = sDist - (offset * 10);
+                }
+            });
+            saveBag(); initBagUI();
+        }
 
         async function updateCalculations() {
             if (!userPos || !targetPos) return;
-            // Throttle check: Don't call API if we've moved less than 2 meters
             const moveDist = map.distance(userPos, lastCalcPos);
             if (moveDist < 2 && lastCalcPos[0] !== 0) return;
             lastCalcPos = [...userPos];
-
             if (targetLine) map.removeLayer(targetLine);
             targetLine = L.polyline([userPos, targetPos], {color: '#2ecc71', weight: 4, dashArray: '8, 12'}).addTo(map);
-            
             const dist = map.distance(userPos, targetPos);
             document.getElementById('dist-raw').innerText = convDist(dist);
-            
             let playsLikeRaw = dist;
             try {
                 const res = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${userPos[0]},${targetPos[0]}&longitude=${userPos[1]},${targetPos[1]}`);
@@ -195,8 +226,7 @@
                     document.getElementById('slope-val').innerText = (slope > 0 ? "+" : "") + slope + "°";
                     playsLikeRaw = dist + (diff * 2.5);
                 }
-            } catch(e) { console.log("Elevation skip"); }
-            
+            } catch(e) {}
             document.getElementById('dist-plays').innerText = convDist(playsLikeRaw);
             const targetVal = convDist(playsLikeRaw);
             let bestClub = "None"; let closestDiff = 999;
@@ -215,7 +245,6 @@
                 userMarker = L.circleMarker(userPos, {radius: 10, color: 'white', fillColor: '#3498db', fillOpacity: 1, weight: 4}).addTo(map); 
                 map.setView(userPos, 18); 
             } else userMarker.setLatLng(userPos);
-            
             if (isTrackingShot) {
                 const d = map.distance(shotStartPos, userPos);
                 document.getElementById('live-shot-counter').innerText = `${convDist(d)} ${currentUnit}`;
@@ -230,21 +259,6 @@
             document.getElementById('clear-target-btn').style.display = 'flex';
             updateCalculations();
         });
-
-        function autoGap() {
-            const dDist = parseInt(document.getElementById('cal-driver').value) || 250;
-            const sDist = parseInt(document.getElementById('cal-7iron').value) || 150;
-            if(myBag["Driver"]) myBag["Driver"] = dDist;
-            if(myBag["3 Wood"]) myBag["3 Wood"] = dDist - 25;
-            if(myBag["5 Wood"]) myBag["5 Wood"] = dDist - 45;
-            ironOrder.forEach((club, index) => {
-                if (myBag[club]) {
-                    const offset = index - ironOrder.indexOf("7 Iron");
-                    myBag[club] = sDist - (offset * 10);
-                }
-            });
-            saveBag(); initBagUI();
-        }
 
         function initBagUI() {
             const list = document.getElementById('bag-list'); list.innerHTML = "";
