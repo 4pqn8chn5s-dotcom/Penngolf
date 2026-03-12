@@ -32,7 +32,6 @@
         .big-number { font-size: 42px; font-weight: 900; color: var(--primary); line-height: 1; letter-spacing: -2px; }
         .label { color: #777; font-size: 10px; text-transform: uppercase; font-weight: 800; margin-bottom: 6px; }
         
-        /* Caddy Box */
         #caddy-box { background: rgba(46, 204, 113, 0.08); border: 1px dashed var(--primary); border-radius: 12px; padding: 12px; margin-top: 12px; display: flex; align-items: center; gap: 12px; }
         .club-suggest { font-family: 'Press Start 2P', cursive; font-size: 8px; color: var(--gold); line-height: 1.6; }
 
@@ -44,16 +43,23 @@
         .main-btn { background: var(--primary); color: black; border: none; padding: 18px; border-radius: 14px; width: 100%; font-weight: 800; font-size: 14px; margin-top: 10px; }
         .util-btn { background:#2a2a2a; padding:10px 12px; border-radius:12px; color:var(--primary); font-size: 11px; border: 1px solid #333; }
 
-        /* Modals & Tables */
+        /* Pop-up Notification (Toast) */
+        #toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); border: 3px solid var(--primary); padding: 20px; border-radius: 15px; z-index: 5000; font-family: 'Press Start 2P', cursive; text-align: center; color: var(--primary); display: none; box-shadow: 0 0 30px rgba(46, 204, 113, 0.5); pointer-events: none; }
+
+        /* Scorecard Modal & Table Grid */
         .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.98); z-index: 2000; padding: 25px 20px; overflow-y: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th { color: #555; font-size: 10px; text-transform: uppercase; padding-bottom: 10px; }
-        td { border-bottom: 1px solid #222; padding: 15px 5px; text-align: center; font-size: 18px; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; border: 1px solid #444; }
+        th { color: #555; font-size: 10px; text-transform: uppercase; padding: 12px 5px; background: #111; border: 1px solid #444; }
+        td { border: 1px solid #444; padding: 15px 5px; text-align: center; font-size: 18px; font-weight: bold; color: white; }
+        tr:active { background: #333; }
+        
         .bag-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #222; }
-        input[type="number"] { background: #222; border: 1px solid #444; color: white; padding: 8px; border-radius: 5px; width: 80px; text-align: center; font-size: 18px; }
+        input[type="number"], input[type="text"] { background: #222; border: 1px solid #444; color: white; padding: 10px; border-radius: 8px; font-size: 16px; }
     </style>
 </head>
 <body>
+
+    <div id="toast">PAR</div>
 
     <div id="map"></div>
     
@@ -121,69 +127,100 @@
 
     <div id="bag-modal" class="modal">
         <span style="float:right; font-size:40px; color:#555;" onclick="toggleBag(false)">&times;</span>
-        <h2 style="color:var(--primary); font-family:'Press Start 2P'; font-size:12px; margin-top:30px;">Club Yardages</h2>
-        <div style="background:#222; padding:10px; border-radius:10px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
-            <span class="label" style="margin:0">Input Mode:</span>
-            <button id="bag-unit-toggle" class="util-btn" onclick="toggleBagUnits()">YARDS</button>
+        <h2 style="color:var(--primary); font-family:'Press Start 2P'; font-size:10px; margin-top:30px;">Smart Bag Setup</h2>
+        
+        <div class="card" style="background:#222; margin-bottom:20px;">
+            <p class="label" style="color:var(--gold)">1. Calibration</p>
+            <div class="bag-row"><span>Driver (Total)</span><input type="number" id="cal-driver" value="250" onchange="autoGap()"></div>
+            <div class="bag-row"><span>7-Iron (Total)</span><input type="number" id="cal-7iron" value="150" onchange="autoGap()"></div>
         </div>
+
+        <p class="label">2. Your Clubs</p>
         <div id="bag-list"></div>
-        <button class="main-btn" style="margin-top:20px;" onclick="toggleBag(false)">SAVE & CLOSE</button>
+        
+        <div style="display:flex; gap:10px; margin-top:15px;">
+            <input type="text" id="new-club-name" placeholder="New Club Name" style="flex:2">
+            <button class="util-btn" style="flex:1" onclick="addNewClub()">+ ADD</button>
+        </div>
+
+        <button class="main-btn" style="background:var(--danger); color:white; margin-top:20px;" onclick="resetToStandard()">RESET TO STANDARD</button>
+        <button class="main-btn" style="margin-top:10px;" onclick="toggleBag(false)">SAVE & CLOSE</button>
     </div>
 
     <div id="scorecard-modal" class="modal">
         <span style="float:right; font-size:40px; color:#555;" onclick="toggleScorecard(false)">&times;</span>
-        <h2 style="color:var(--primary); font-family: 'Press Start 2P'; font-size: 12px; margin-top: 30px;">Round Progress</h2>
+        <h2 style="color:var(--primary); font-family: 'Press Start 2P'; font-size: 10px; margin-top: 30px;">Scorecard</h2>
         <div id="total-summary" style="font-size:22px; margin:20px 0; font-weight: 900; color:var(--gold);"></div>
+        <p class="label" style="text-align:center; color:var(--accent); margin-bottom: 0;">Tap any hole to edit</p>
         <table><thead><tr><th>Hole</th><th>Par</th><th>Score</th><th>+/-</th></tr></thead><tbody id="card-body"></tbody></table>
-        <button class="main-btn" style="background:var(--danger); color:white; font-family:'Press Start 2P'; font-size:10px; margin-top:40px;" onclick="confirmEndRound()">RESET MATCH</button>
+        <button class="main-btn" style="background:var(--danger); color:white; margin-top:40px;" onclick="confirmEndRound()">RESET MATCH</button>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // --- 1. INITIALIZATION ---
+        // --- 1. CORE STATE ---
         const map = L.map('map', { zoomControl: false, maxZoom: 19, attributionControl: false }).setView([0,0], 2);
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}').addTo(map);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', { opacity: 0.7 }).addTo(map);
 
         let userPos, targetPos, userMarker, targetMarker, targetLine, shotStartPos;
-        let currentPar = 4, currentScore = 4, currentUnit = 'YDS', bagUnit = 'YARDS', activeEditHole = null, isTrackingShot = false;
-        let roundData = { scores: [], shotLogs: [] };
-        let myBag = { "Driver": 250, "3 Wood": 220, "5 Wood": 200, "4 Iron": 185, "5 Iron": 175, "6 Iron": 165, "7 Iron": 155, "8 Iron": 145, "9 Iron": 135, "PW": 120, "GW": 110, "SW": 95, "LW": 80 };
+        let currentPar = 4, currentScore = 4, currentUnit = 'YDS', activeEditHole = null, isTrackingShot = false;
+        let roundData = JSON.parse(localStorage.getItem('penngolfRound')) || { scores: [], shotLogs: [] };
+        
+        const defaultBag = { "Driver": 250, "3 Wood": 225, "5 Wood": 205, "4 Iron": 185, "5 Iron": 175, "6 Iron": 165, "7 Iron": 150, "8 Iron": 140, "9 Iron": 130, "PW": 120, "GW": 110, "SW": 95, "LW": 80 };
+        let myBag = JSON.parse(localStorage.getItem('penngolfBag')) || {...defaultBag};
+        const ironOrder = ["3 Iron", "4 Iron", "5 Iron", "6 Iron", "7 Iron", "8 Iron", "9 Iron", "PW", "GW", "SW", "LW"];
 
-        if (localStorage.getItem('penngolfRound')) roundData = JSON.parse(localStorage.getItem('penngolfRound'));
-        if (localStorage.getItem('penngolfBag')) myBag = JSON.parse(localStorage.getItem('penngolfBag'));
-
-        // --- 2. BAG SYSTEM ---
-        function initBagUI() {
-            const list = document.getElementById('bag-list'); list.innerHTML = "";
-            Object.keys(myBag).sort((a,b)=>myBag[b]-myBag[a]).forEach(club => {
-                let displayVal = bagUnit === 'METERS' ? Math.round(myBag[club] / 1.09361) : myBag[club];
-                list.innerHTML += `<div class="bag-row"><span>${club}</span><input type="number" value="${displayVal}" onchange="updateClubDist('${club}', this.value)"></div>`;
+        // --- 2. SMART BAG LOGIC ---
+        function autoGap() {
+            const dDist = parseInt(document.getElementById('cal-driver').value) || 250;
+            const sDist = parseInt(document.getElementById('cal-7iron').value) || 150;
+            if(myBag["Driver"]) myBag["Driver"] = dDist;
+            if(myBag["3 Wood"]) myBag["3 Wood"] = dDist - 25;
+            if(myBag["5 Wood"]) myBag["5 Wood"] = dDist - 45;
+            ironOrder.forEach((club, index) => {
+                if (myBag[club]) {
+                    const offset = index - ironOrder.indexOf("7 Iron");
+                    myBag[club] = sDist - (offset * 10);
+                }
             });
-        }
-        function toggleBagUnits() {
-            bagUnit = bagUnit === 'YARDS' ? 'METERS' : 'YARDS';
-            document.getElementById('bag-unit-toggle').innerText = bagUnit;
+            saveBag();
             initBagUI();
         }
-        function updateClubDist(club, val) {
-            let num = parseInt(val);
-            myBag[club] = bagUnit === 'METERS' ? Math.round(num * 1.09361) : num;
-            localStorage.setItem('penngolfBag', JSON.stringify(myBag));
-            updateCalculations();
+
+        function initBagUI() {
+            const list = document.getElementById('bag-list');
+            list.innerHTML = "";
+            Object.keys(myBag).sort((a,b) => myBag[b] - myBag[a]).forEach(club => {
+                list.innerHTML += `<div class="bag-row">
+                    <span onclick="deleteClub('${club}')" style="color:var(--danger); font-weight:bold; padding:0 10px;">×</span>
+                    <span style="flex:1">${club}</span>
+                    <input type="number" value="${myBag[club]}" style="width:70px;" onchange="manualUpdate('${club}', this.value)">
+                </div>`;
+            });
         }
+
+        function manualUpdate(club, v) { myBag[club] = parseInt(v); saveBag(); }
+        function deleteClub(club) { delete myBag[club]; saveBag(); initBagUI(); }
+        function addNewClub() {
+            const n = document.getElementById('new-club-name').value;
+            if(!n) return;
+            myBag[n] = 100;
+            document.getElementById('new-club-name').value = "";
+            saveBag(); initBagUI();
+        }
+        function resetToStandard() { if(confirm("Reset bag to standard 14 clubs?")) { myBag = {...defaultBag}; saveBag(); initBagUI(); } }
+        function saveBag() { localStorage.setItem('penngolfBag', JSON.stringify(myBag)); updateCalculations(); }
         function toggleBag(show) { if(show) initBagUI(); document.getElementById('bag-modal').style.display = show ? 'block' : 'none'; }
 
-        // --- 3. CORE CALCULATIONS ---
+        // --- 3. CALCULATIONS & GPS ---
         async function updateCalculations() {
             if (!userPos || !targetPos) return;
             if (targetLine) map.removeLayer(targetLine);
             targetLine = L.polyline([userPos, targetPos], {color: '#2ecc71', weight: 4, dashArray: '8, 12'}).addTo(map);
-            
-            const dist = map.distance(userPos, targetPos); // Haversine formula
+            const dist = map.distance(userPos, targetPos);
             const conv = (d) => Math.round(currentUnit === 'YDS' ? d * 1.09361 : d);
             document.getElementById('dist-raw').innerText = conv(dist);
-
             let playsLikeRaw = dist;
             try {
                 const res = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${userPos[0]},${targetPos[0]}&longitude=${userPos[1]},${targetPos[1]}`);
@@ -191,85 +228,17 @@
                 const diff = data.elevation[1] - data.elevation[0];
                 const slope = (Math.atan(diff / dist) * (180 / Math.PI)).toFixed(1);
                 document.getElementById('slope-val').innerText = (slope > 0 ? "+" : "") + slope + "°";
-                playsLikeRaw = dist + (diff * 2.5); // Fixed factor for elevation adjustment
+                playsLikeRaw = dist + (diff * 2.5);
                 document.getElementById('dist-plays').innerText = conv(playsLikeRaw);
             } catch(e) { document.getElementById('dist-plays').innerText = conv(dist); }
-
-            // Caddy Logic - tied to main unit toggle
-            const targetInUnit = conv(playsLikeRaw);
+            const targetVal = conv(playsLikeRaw);
             let bestClub = "None"; let closestDiff = 999;
             Object.keys(myBag).forEach(club => {
-                let clubInUnit = currentUnit === 'YDS' ? myBag[club] : Math.round(myBag[club] / 1.09361);
-                let d = Math.abs(clubInUnit - targetInUnit);
+                let clubVal = currentUnit === 'YDS' ? myBag[club] : Math.round(myBag[club] / 1.09361);
+                let d = Math.abs(clubVal - targetVal);
                 if (d < closestDiff) { closestDiff = d; bestClub = club; }
             });
-            document.getElementById('club-recommendation').innerText = `RECOMMEND ${bestClub.toUpperCase()} (${targetInUnit}${currentUnit === 'YDS' ? 'Y' : 'M'})`;
-        }
-
-        // --- 4. SCORING ENGINE ---
-        function setPar(p, btn) { 
-            currentPar = p; currentScore = p; 
-            document.getElementById('h-score-display').innerText = p; 
-            document.querySelectorAll('.par-btn').forEach(b => b.classList.remove('active')); 
-            btn.classList.add('active'); 
-        }
-        function adjustScore(v) { currentScore = Math.max(1, currentScore + v); document.getElementById('h-score-display').innerText = currentScore; }
-        
-        function saveAndNext() {
-            const h = activeEditHole || (roundData.scores.length + 1);
-            const holeEntry = { h, par: currentPar, s: currentScore, diff: currentScore - currentPar };
-            if (activeEditHole) {
-                let idx = roundData.scores.findIndex(s => s.h === activeEditHole);
-                roundData.scores[idx] = holeEntry;
-                activeEditHole = null;
-            } else { roundData.scores.push(holeEntry); }
-            localStorage.setItem('penngolfRound', JSON.stringify(roundData));
-            updateUIForHole(roundData.scores.length + 1);
-            updateGrandTotals();
-        }
-
-        function toggleScorecard(s) { 
-            document.getElementById('scorecard-modal').style.display = s ? 'block' : 'none'; 
-            if(s) {
-                const b = document.getElementById('card-body'); b.innerHTML = "";
-                roundData.scores.sort((x,y)=>x.h-y.h).forEach(s => {
-                    b.innerHTML += `<tr onclick="editHole(${s.h})"><td>${s.h}</td><td>${s.par}</td><td>${s.s}</td><td>${s.diff > 0 ? '+'+s.diff : (s.diff===0?'E':s.diff)}</td></tr>`;
-                });
-                const total = roundData.scores.reduce((a, b) => a + b.diff, 0);
-                document.getElementById('total-summary').innerText = `TOTAL: ${total > 0 ? '+'+total : (total===0?'EVEN':total)}`;
-            }
-        }
-        function editHole(h) { activeEditHole = h; toggleScorecard(false); updateUIForHole(h); }
-
-        function updateUIForHole(h) {
-            document.getElementById('hole-num').innerText = h;
-            const existing = roundData.scores.find(s => s.h === h);
-            document.getElementById('edit-indicator').style.display = existing ? 'inline' : 'none';
-            document.getElementById('finish-btn').innerText = existing ? "SAVE HOLE EDIT" : "FINISH HOLE";
-            currentScore = existing ? existing.s : 4; currentPar = existing ? existing.par : 4;
-            document.getElementById('h-score-display').innerText = currentScore;
-            document.querySelectorAll('.par-btn').forEach(b => {
-                b.classList.toggle('active', b.innerText === `PAR ${currentPar}`);
-            });
-        }
-
-        // --- 5. GPS & TRACKING ---
-        function toggleShotTrack() {
-            if (!userPos) return alert("Searching for GPS...");
-            isTrackingShot = !isTrackingShot;
-            const btn = document.getElementById('shot-btn');
-            const counter = document.getElementById('live-shot-counter');
-            if (isTrackingShot) {
-                shotStartPos = [...userPos];
-                btn.innerText = "END SHOT"; btn.style.background = "var(--danger)";
-                counter.style.display = "block";
-            } else {
-                const d = map.distance(shotStartPos, userPos);
-                roundData.shotLogs.push(`H${document.getElementById('hole-num').innerText}: ${Math.round(d * 1.09361)} YDS`);
-                btn.innerText = "START SHOT"; btn.style.background = "var(--primary)";
-                counter.style.display = "none";
-                localStorage.setItem('penngolfRound', JSON.stringify(roundData));
-            }
+            document.getElementById('club-recommendation').innerText = `RECOMMEND ${bestClub.toUpperCase()} (${targetVal}${currentUnit[0]})`;
         }
 
         navigator.geolocation.watchPosition(pos => {
@@ -292,20 +261,90 @@
             updateCalculations();
         });
 
-        // --- 6. UTILITIES ---
+        // --- 4. SCORING & UTILS ---
+        function setPar(p, btn) { currentPar = p; currentScore = p; document.getElementById('h-score-display').innerText = p; document.querySelectorAll('.par-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
+        function adjustScore(v) { currentScore = Math.max(1, currentScore + v); document.getElementById('h-score-display').innerText = currentScore; }
+        
+        function showFeedback(diff) {
+            const toast = document.getElementById('toast');
+            let msg = "PAR";
+            let color = "var(--primary)";
+            
+            if (diff === -3) { msg = "ALBATROSS!!"; color = "var(--gold)"; }
+            else if (diff === -2) { msg = "EAGLE!"; color = "var(--gold)"; }
+            else if (diff === -1) { msg = "BIRDIE!"; color = "var(--gold)"; }
+            else if (diff === 0) { msg = "PAR"; color = "var(--primary)"; }
+            else if (diff === 1) { msg = "BOGEY"; color = "var(--danger)"; }
+            else if (diff === 2) { msg = "DBL BOGEY"; color = "var(--danger)"; }
+            else { msg = "SNOWMAN..."; color = "#8e44ad"; }
+
+            toast.innerText = msg;
+            toast.style.borderColor = color;
+            toast.style.color = color;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 2500);
+        }
+
+        function saveAndNext() {
+            const h = activeEditHole || (roundData.scores.length + 1);
+            const entry = { h, par: currentPar, s: currentScore, diff: currentScore - currentPar };
+            
+            if (activeEditHole) { 
+                let idx = roundData.scores.findIndex(s => s.h === activeEditHole); 
+                roundData.scores[idx] = entry; 
+                activeEditHole = null; 
+            } else { 
+                roundData.scores.push(entry); 
+                showFeedback(entry.diff);
+            }
+            
+            localStorage.setItem('penngolfRound', JSON.stringify(roundData));
+            updateUIForHole(roundData.scores.length + 1);
+            updateGrandTotals();
+        }
+
+        function toggleScorecard(s) { 
+            document.getElementById('scorecard-modal').style.display = s ? 'block' : 'none'; 
+            if(s) {
+                const b = document.getElementById('card-body'); b.innerHTML = "";
+                roundData.scores.sort((x,y)=>x.h-y.h).forEach(s => {
+                    b.innerHTML += `<tr onclick="editHole(${s.h})"><td>${s.h}</td><td>${s.par}</td><td>${s.s}</td><td>${s.diff > 0 ? '+'+s.diff : (s.diff===0?'E':s.diff)}</td></tr>`;
+                });
+                const total = roundData.scores.reduce((a, b) => a + b.diff, 0);
+                document.getElementById('total-summary').innerText = `TOTAL: ${total > 0 ? '+'+total : (total===0?'EVEN':total)}`;
+            }
+        }
+        function editHole(h) { activeEditHole = h; toggleScorecard(false); updateUIForHole(h); }
+        function updateUIForHole(h) {
+            document.getElementById('hole-num').innerText = h;
+            const ex = roundData.scores.find(s => s.h === h);
+            document.getElementById('edit-indicator').style.display = ex ? 'inline' : 'none';
+            document.getElementById('finish-btn').innerText = ex ? "SAVE HOLE EDIT" : "FINISH HOLE";
+            currentScore = ex ? ex.s : 4; currentPar = ex ? ex.par : 4;
+            document.getElementById('h-score-display').innerText = currentScore;
+            document.querySelectorAll('.par-btn').forEach(b => b.classList.toggle('active', b.innerText === `PAR ${currentPar}`));
+        }
+
+        function toggleShotTrack() {
+            if (!userPos) return alert("Searching for GPS...");
+            isTrackingShot = !isTrackingShot;
+            const btn = document.getElementById('shot-btn');
+            const counter = document.getElementById('live-shot-counter');
+            if (isTrackingShot) { shotStartPos = [...userPos]; btn.innerText = "END SHOT"; btn.style.background = "var(--danger)"; counter.style.display = "block"; }
+            else {
+                const d = map.distance(shotStartPos, userPos);
+                roundData.shotLogs.push(`H${document.getElementById('hole-num').innerText}: ${Math.round(d * 1.09361)} YDS`);
+                btn.innerText = "START SHOT"; btn.style.background = "var(--primary)"; counter.style.display = "none";
+                localStorage.setItem('penngolfRound', JSON.stringify(roundData));
+            }
+        }
+
         function cycleUnits() { currentUnit = currentUnit === 'YDS' ? 'MTR' : 'YDS'; document.getElementById('unit-toggle').innerText = currentUnit; updateCalculations(); }
         function snapToUser() { if (userPos) map.setView(userPos, 18); }
         function clearTarget() { targetPos = null; if(targetMarker) map.removeLayer(targetMarker); if(targetLine) map.removeLayer(targetLine); document.getElementById('clear-target-btn').style.display = 'none'; }
-        function updateGrandTotals() {
-            const d = roundData.scores.reduce((a, b) => a + b.diff, 0);
-            document.getElementById('live-total').innerText = `TOT: ${d > 0 ? '+'+d : (d===0?'E':d)}`;
-        }
-        function downloadData() {
-            let txt = "ROUND EXPORT\n" + roundData.scores.map(s => `H${s.h}: ${s.s} (Par ${s.par})`).join("\n") + "\n\nSHOT LOG:\n" + roundData.shotLogs.join("\n");
-            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt])); a.download = 'golf_round.txt'; a.click();
-        }
-        function confirmEndRound() { if(confirm("End match and clear data?")) { localStorage.removeItem('penngolfRound'); location.reload(); } }
-
+        function updateGrandTotals() { const d = roundData.scores.reduce((a, b) => a + b.diff, 0); document.getElementById('live-total').innerText = `TOT: ${d > 0 ? '+'+d : (d===0?'E':d)}`; }
+        function downloadData() { let txt = "ROUND EXPORT\n" + roundData.scores.map(s => `H${s.h}: ${s.s} (Par ${s.par})`).join("\n") + "\n\nSHOT LOG:\n" + roundData.shotLogs.join("\n"); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt])); a.download = 'golf_round.txt'; a.click(); }
+        function confirmEndRound() { if(confirm("End round and clear data?")) { localStorage.removeItem('penngolfRound'); location.reload(); } }
         updateUIForHole(roundData.scores.length + 1);
         updateGrandTotals();
     </script>
