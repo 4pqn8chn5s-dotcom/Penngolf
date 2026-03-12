@@ -3,236 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Elite Golf GPS - Steady Scan</title>
+    <title>Elite Golf GPS - Fixed</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root { --primary: #2ecc71; --bg: #121212; --card: #1e1e1e; --accent: #3498db; }
         body { margin: 0; font-family: -apple-system, sans-serif; background: var(--bg); color: white; overflow: hidden; touch-action: manipulation; }
         #map { height: 42vh; width: 100%; border-bottom: 2px solid var(--primary); background: #222; }
         #ui-container { height: 58vh; overflow-y: auto; padding: 12px; box-sizing: border-box; padding-bottom: 100px; }
-        
-        .hole-label { background: rgba(0,0,0,0.7); border: 1.5px solid var(--primary); border-radius: 50%; color: white; font-weight: 800; text-align: center; font-size: 11px; line-height: 22px; width: 22px !important; height: 22px !important; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
-
+        .hole-label { background: rgba(0,0,0,0.85); border: 2px solid var(--primary); border-radius: 50%; color: white; font-weight: 900; text-align: center; font-size: 12px; line-height: 24px; width: 24px !important; height: 24px !important; box-shadow: 0 0 8px rgba(0,0,0,0.8); }
         #locate-btn { position: absolute; bottom: 60vh; right: 15px; z-index: 1000; background: white; border: none; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
-        .toggle-container { background: #333; border-radius: 20px; padding: 2px; display: flex; width: 80px; }
-        .toggle-btn { flex: 1; text-align: center; padding: 4px 0; border-radius: 18px; font-size: 9px; font-weight: bold; cursor: pointer; }
-        .toggle-btn.active { background: var(--primary); color: black; }
         .card { background: var(--card); border-radius: 12px; padding: 12px; margin-bottom: 10px; border: 1px solid #333; }
-        .row { display: flex; justify-content: space-between; align-items: center; margin: 5px 0; }
         .big-number { font-size: 32px; font-weight: 800; color: var(--primary); }
         .label { color: #888; font-size: 10px; text-transform: uppercase; font-weight: bold; }
-        #shot-overlay { position: absolute; top: 15px; right: 15px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; }
-        #shot-btn { background: var(--primary); color: black; border: none; padding: 12px 20px; border-radius: 50px; font-weight: 900; }
-        #shot-dist-display { background: rgba(0,0,0,0.85); padding: 5px 15px; border-radius: 20px; margin-top: 5px; font-weight: bold; display: none; border: 1px solid var(--primary); }
         button.main-btn { background: var(--primary); color: black; border: none; padding: 14px; border-radius: 10px; width: 100%; font-weight: 800; }
-        .save-btn { background: #444; color: #fff; margin-top: 10px; font-size: 12px; padding: 10px; border: none; width: 100%; border-radius: 8px; }
-        input { background: #333; border: none; color: white; padding: 8px; width: 40px; border-radius: 6px; text-align: center; }
-        .log-item { background: #252525; padding: 8px; border-radius: 8px; margin-top: 5px; font-size: 12px; display: flex; justify-content: space-between; border-left: 3px solid var(--primary); }
     </style>
 </head>
 <body>
-
     <button id="locate-btn" onclick="snapToUser()">
         <svg viewBox="0 0 24 24" width="24" height="24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
     </button>
-
-    <div id="shot-overlay">
-        <button id="shot-btn" onclick="toggleShotTrack()">START SHOT</button>
-        <div id="shot-dist-display">0 YDS</div>
-    </div>
-
     <div id="map"></div>
-
     <div id="ui-container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <div class="label" id="course-status" style="color: var(--accent);">Ready</div>
-            <div class="toggle-container">
-                <div id="unit-yds" class="toggle-btn active" onclick="setUnit('YDS')">YDS</div>
-                <div id="unit-mtr" class="toggle-btn" onclick="setUnit('MTR')">MTR</div>
-            </div>
+            <div class="label" id="course-status" style="color: #f1c40f;">System Ready</div>
         </div>
-
         <div class="card">
-            <div class="row">
-                <div style="text-align: center; flex: 1;">
-                    <div class="label">Actual</div>
-                    <div id="dist-raw" class="big-number">--</div>
-                </div>
-                <div style="text-align: center; flex: 1; border-left: 1px solid #444; border-right: 1px solid #444;">
-                    <div class="label">Plays Like</div>
-                    <div id="plays-like" class="big-number">--</div>
-                </div>
-                <div style="text-align: center; flex: 1;">
-                    <div class="label">Club</div>
-                    <div id="club-rec" class="big-number" style="font-size: 22px;">--</div>
-                </div>
-            </div>
-            <div class="row" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #333;">
-                <span class="label">Slope: <b id="slope-val" style="color: white;">0°</b></span>
-                <span class="label" id="target-status" style="color: var(--primary);">Tap Map to Target</span>
+            <div style="display: flex; justify-content: space-around; text-align: center;">
+                <div><div class="label">Distance</div><div id="dist-raw" class="big-number">--</div></div>
+                <div><div class="label">Hole</div><div id="hole-display" class="big-number" style="color:white">1</div></div>
             </div>
         </div>
-
-        <div class="card">
-            <div class="row">
-                <span style="font-weight: bold;">Hole <span id="hole-num">1</span></span>
-                <div>
-                    <span class="label">Score</span> <input type="number" id="h-score" value="4">
-                    <span class="label" style="margin-left:5px;">Putts</span> <input type="number" id="h-putts" value="2">
-                </div>
-            </div>
-            <button class="main-btn" style="background:#333; color:white; margin-top:10px;" onclick="saveHole()">FINISH HOLE</button>
-        </div>
-
-        <div class="label" style="margin-left:5px;">Session Log</div>
-        <div id="shot-log"></div>
-        <button class="save-btn" onclick="downloadRound()">💾 EXPORT ROUND</button>
+        <button class="main-btn" onclick="saveHole()">NEXT HOLE</button>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const map = L.map('map', { zoomControl: false, maxZoom: 22 }).setView([0, 0], 2);
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            maxZoom: 22, maxNativeZoom: 18
-        }).addTo(map);
+        const map = L.map('map', { zoomControl: false, maxZoom: 22 }).setView([39.9526, -75.1652], 13);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 22, maxNativeZoom: 18 }).addTo(map);
 
-        let userMarker, targetMarker, targetLine, userPos = null, targetPos = null, shotStartPos = null, isTrackingShot = false, currentUnit = 'YDS';
-        let fullScorecard = [], trackedShots = [];
-        let lastScanPos = null;
+        let userMarker, targetMarker, targetLine, userPos = null, targetPos = null;
         let featureLayer = L.layerGroup().addTo(map);
-        let scanTimeout;
 
-        function setUnit(u) { currentUnit = u; document.getElementById('unit-yds').className = u==='YDS'?'toggle-btn active':'toggle-btn'; document.getElementById('unit-mtr').className = u==='MTR'?'toggle-btn active':'toggle-btn'; updateCalculations(); }
-        function convert(m) { return currentUnit === 'YDS' ? Math.round(m * 1.09361) : Math.round(m); }
-        function snapToUser() { if (userPos) map.setView(userPos, 19); }
+        // CORS PROXY to fix the "Network Error"
+        const proxy = "https://corsproxy.io/?";
+        const endpoint = "https://overpass-api.de/api/interpreter";
 
         navigator.geolocation.watchPosition((pos) => {
             userPos = [pos.coords.latitude, pos.coords.longitude];
             if (!userMarker) {
                 userMarker = L.circleMarker(userPos, {radius: 8, color: '#fff', fillColor: '#2ecc71', fillOpacity: 1, weight: 3}).addTo(map);
-                map.setView(userPos, 19);
+                map.setView(userPos, 18);
                 scanCourse(userPos[0], userPos[1]);
             } else userMarker.setLatLng(userPos);
-            if (isTrackingShot) document.getElementById('shot-dist-display').innerText = `${convert(getDist(shotStartPos, userPos))} ${currentUnit}`;
-            updateCalculations();
+            updateCalc();
         }, null, { enableHighAccuracy: true });
 
-        // DEBOUNCED SCANNER: Only scans when you stop moving for 1000ms
         map.on('moveend', () => {
-            clearTimeout(scanTimeout);
-            scanTimeout = setTimeout(() => {
-                const center = map.getCenter();
-                if (!lastScanPos || getDist([center.lat, center.lng], [lastScanPos.lat, lastScanPos.lng]) > 500) {
-                    scanCourse(center.lat, center.lng);
-                }
-            }, 1000);
+            const center = map.getCenter();
+            scanCourse(center.lat, center.lng);
         });
 
         async function scanCourse(lat, lng) {
-            lastScanPos = {lat, lng};
-            document.getElementById('course-status').innerText = "Scanning Course...";
-            const query = `[out:json];(node["golf"~"tee|green|hole"](around:1000,${lat},${lng});way["golf"~"tee|green|hole"](around:1000,${lat},${lng}););out center;`;
+            const status = document.getElementById('course-status');
+            status.innerText = "Fetching Data...";
+            
+            const query = `[out:json][timeout:25];(node["golf"~"tee|green|hole"](around:1000,${lat},${lng});way["golf"~"tee|green|hole"](around:1000,${lat},${lng}););out center;`;
+            
             try {
-                const res = await fetch(`https://overpass-api.de/api/overpass?data=${encodeURIComponent(query)}`);
-                if (!res.ok) throw new Error();
-                const data = await res.json();
+                // Using the proxy to bypass CORS security block
+                const response = await fetch(proxy + encodeURIComponent(endpoint + "?data=" + query));
+                const data = await response.json();
                 
                 featureLayer.clearLayers();
                 data.elements.forEach(el => {
                     const pos = el.type === 'node' ? [el.lat, el.lon] : [el.center.lat, el.center.lon];
-                    const type = el.tags.golf;
-                    const holeNum = el.tags.ref || "";
-
-                    if (type === 'hole' && holeNum) {
-                        L.marker(pos, { icon: L.divIcon({ className: 'hole-label', html: holeNum }) }).addTo(featureLayer)
-                         .on('click', (e) => { L.DomEvent.stopPropagation(e); setTarget(pos); });
-                    } else {
-                        const isGreen = type === 'green';
-                        const m = L.circleMarker(pos, {
-                            radius: isGreen ? 7 : 4,
-                            color: isGreen ? '#2ecc71' : '#fff',
-                            fillOpacity: 0.4
-                        }).addTo(featureLayer);
-                        m.on('click', (e) => { L.DomEvent.stopPropagation(e); setTarget(pos); });
+                    if (el.tags.golf === 'hole' && el.tags.ref) {
+                        L.marker(pos, { icon: L.divIcon({ className: 'hole-label', html: el.tags.ref }) }).addTo(featureLayer)
+                         .on('click', () => setTarget(pos));
+                    } else if (el.tags.golf === 'green') {
+                        L.circleMarker(pos, { radius: 8, color: '#2ecc71', fillOpacity: 0.5 }).addTo(featureLayer)
+                         .on('click', () => setTarget(pos));
                     }
                 });
-                document.getElementById('course-status').innerText = "Course Intel Active";
-                document.getElementById('course-status').style.color = "var(--primary)";
-            } catch (e) { 
-                document.getElementById('course-status').innerText = "Course data not found here"; 
-                document.getElementById('course-status').style.color = "#888";
+                status.innerText = data.elements.length > 0 ? "Course Data Loaded" : "No Mapped Data Here";
+                status.style.color = "#2ecc71";
+            } catch (e) {
+                status.innerText = "Connection Error - Using Manual Mode";
+                status.style.color = "#e74c3c";
             }
         }
 
         map.on('click', (e) => setTarget([e.latlng.lat, e.latlng.lng]));
+
         function setTarget(pos) {
             targetPos = pos;
-            if (!targetMarker) targetMarker = L.circleMarker(targetPos, {radius: 6, color: '#2ecc71', fillColor: '#000', fillOpacity: 0.5}).addTo(map);
+            if (!targetMarker) targetMarker = L.circleMarker(targetPos, {radius: 6, color: '#2ecc71', fillColor: '#000', fillOpacity: 0.8}).addTo(map);
             else targetMarker.setLatLng(targetPos);
-            updateCalculations();
+            updateCalc();
         }
 
-        function getDist(p1, p2) {
-            const R = 6371000;
-            const dLat = (p2[0]-p1[0])*Math.PI/180; const dLon = (p2[1]-p1[1])*Math.PI/180;
-            const a = Math.sin(dLat/2)**2 + Math.cos(p1[0]*Math.PI/180)*Math.cos(p2[0]*Math.PI/180)*Math.sin(dLon/2)**2;
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
-
-        async function updateCalculations() {
+        function updateCalc() {
             if (!userPos || !targetPos) return;
             if (targetLine) map.removeLayer(targetLine);
-            targetLine = L.polyline([userPos, targetPos], {color: '#2ecc71', weight: 1, dashArray: '5,5'}).addTo(map);
-            const mtrs = getDist(userPos, targetPos);
-            document.getElementById('dist-raw').innerText = convert(mtrs);
-            try {
-                const res = await fetch(`https://api.open-elevation.com/api/v1/lookup?locations=${userPos[0]},${userPos[1]}|${targetPos[0]},${targetPos[1]}`);
-                const data = await res.json();
-                const elevDiff = data.results[1].elevation - data.results[0].elevation;
-                const slope = (Math.atan(elevDiff / mtrs) * (180 / Math.PI)).toFixed(1);
-                const adjYards = (mtrs * 1.09361) + (elevDiff * 3.28); 
-                document.getElementById('slope-val').innerText = slope + "°";
-                document.getElementById('plays-like').innerText = convert(adjYards / 1.09361);
-                const clubs = [[230,"DR"],[205,"3W"],[185,"4i"],[170,"5i"],[155,"6i"],[140,"7i"],[125,"8i"],[110,"9i"],[95,"PW"]];
-                let rec = "WED";
-                for (let [d, c] of clubs) { if (adjYards >= d) { rec = c; break; } }
-                document.getElementById('club-rec').innerText = rec;
-            } catch (e) {}
-        }
-
-        function toggleShotTrack() {
-            const btn = document.getElementById('shot-btn');
-            const disp = document.getElementById('shot-dist-display');
-            if (!isTrackingShot) {
-                shotStartPos = [...userPos]; isTrackingShot = true;
-                btn.innerText = "STOP"; btn.style.background = "#e74c3c"; disp.style.display = "block";
-            } else {
-                const final = convert(getDist(shotStartPos, userPos));
-                trackedShots.push(`${final} ${currentUnit}`);
-                const item = document.createElement('div');
-                item.className = 'log-item';
-                item.innerHTML = `<span>Shot</span> <b>${final} ${currentUnit}</b>`;
-                document.getElementById('shot-log').prepend(item);
-                isTrackingShot = false; btn.innerText = "START SHOT"; btn.style.background = "#2ecc71"; disp.style.display = "none";
-            }
+            targetLine = L.polyline([userPos, targetPos], {color: '#2ecc71', weight: 2, dashArray: '5, 10'}).addTo(map);
+            const dist = map.distance(userPos, targetPos) * 1.09361;
+            document.getElementById('dist-raw').innerText = Math.round(dist);
         }
 
         function saveHole() {
-            const hNum = document.getElementById('hole-num').innerText;
-            fullScorecard.push({ hole: hNum, score: document.getElementById('h-score').value, putts: document.getElementById('h-putts').value });
-            document.getElementById('hole-num').innerText = parseInt(hNum) + 1;
+            const h = document.getElementById('hole-display');
+            h.innerText = parseInt(h.innerText) + 1;
         }
 
-        function downloadRound() {
-            let content = "GOLF ROUND SUMMARY\n\n";
-            fullScorecard.forEach(h => content += `Hole ${h.hole}: ${h.score} (${h.putts} putts)\n`);
-            content += "\nSHOTS: " + trackedShots.join(", ");
-            const blob = new Blob([content], { type: 'text/plain' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `round_${new Date().toISOString().slice(0,10)}.txt`;
-            a.click();
-        }
+        function snapToUser() { if(userPos) map.setView(userPos, 18); }
     </script>
 </body>
 </html>
