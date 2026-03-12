@@ -209,11 +209,6 @@
 
         async function updateCalculations() {
             if (!userPos || !targetPos) return;
-            const moveDist = map.distance(userPos, lastCalcPos);
-            if (moveDist < 2 && lastCalcPos[0] !== 0) return;
-            lastCalcPos = [...userPos];
-            if (targetLine) map.removeLayer(targetLine);
-            targetLine = L.polyline([userPos, targetPos], {color: '#2ecc71', weight: 4, dashArray: '8, 12'}).addTo(map);
             const dist = map.distance(userPos, targetPos);
             document.getElementById('dist-raw').innerText = convDist(dist);
             let playsLikeRaw = dist;
@@ -245,20 +240,45 @@
                 userMarker = L.circleMarker(userPos, {radius: 10, color: 'white', fillColor: '#3498db', fillOpacity: 1, weight: 4}).addTo(map); 
                 map.setView(userPos, 18); 
             } else userMarker.setLatLng(userPos);
+            
+            // Sync line with user moving
+            if (targetPos && targetLine) {
+                targetLine.setLatLngs([userPos, targetPos]);
+                updateCalculations();
+            }
+
             if (isTrackingShot) {
                 const d = map.distance(shotStartPos, userPos);
                 document.getElementById('live-shot-counter').innerText = `${convDist(d)} ${currentUnit}`;
             }
-            updateCalculations();
         }, null, { enableHighAccuracy: true });
 
         map.on('click', e => {
             targetPos = [e.latlng.lat, e.latlng.lng];
-            if (!targetMarker) targetMarker = L.circleMarker(targetPos, {radius: 10, color: '#f1c40f', weight: 4, fillColor: 'transparent'}).addTo(map);
-            else targetMarker.setLatLng(targetPos);
+            if (!targetMarker) {
+                targetMarker = L.circleMarker(targetPos, {radius: 10, color: '#f1c40f', weight: 4, fillColor: 'transparent'}).addTo(map);
+            } else {
+                targetMarker.setLatLng(targetPos);
+            }
+            if (targetLine) {
+                targetLine.setLatLngs([userPos, targetPos]);
+            } else {
+                targetLine = L.polyline([userPos, targetPos], {color: '#2ecc71', weight: 4, dashArray: '8, 12'}).addTo(map);
+            }
             document.getElementById('clear-target-btn').style.display = 'flex';
             updateCalculations();
         });
+
+        function clearTarget() {
+            targetPos = null;
+            if(targetMarker) { map.removeLayer(targetMarker); targetMarker = null; }
+            if(targetLine) { map.removeLayer(targetLine); targetLine = null; }
+            document.getElementById('clear-target-btn').style.display = 'none';
+            document.getElementById('dist-raw').innerText = "--";
+            document.getElementById('dist-plays').innerText = "--";
+            document.getElementById('slope-val').innerText = "0°";
+            document.getElementById('club-recommendation').innerText = "TAP MAP FOR TARGET";
+        }
 
         function initBagUI() {
             const list = document.getElementById('bag-list'); list.innerHTML = "";
@@ -333,7 +353,6 @@
 
         function cycleUnits() { currentUnit = currentUnit === 'YDS' ? 'MTR' : 'YDS'; document.getElementById('unit-toggle').innerText = currentUnit; updateCalculations(); }
         function snapToUser() { if (userPos) map.setView(userPos, 18); }
-        function clearTarget() { targetPos = null; if(targetMarker) map.removeLayer(targetMarker); if(targetLine) map.removeLayer(targetLine); document.getElementById('clear-target-btn').style.display = 'none'; }
         function updateGrandTotals() { const d = roundData.scores.reduce((a, b) => a + b.diff, 0); document.getElementById('live-total').innerText = `TOT: ${d > 0 ? '+'+d : (d===0?'E':d)}`; }
         function downloadData() { let txt = "ROUND EXPORT\n" + roundData.scores.map(s => `H${s.h}: ${s.s} (Par ${s.par})`).join("\n") + "\n\nSHOT LOG:\n" + roundData.shotLogs.join("\n"); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt])); a.download = 'golf_round.txt'; a.click(); }
         function confirmEndRound() { if(confirm("Reset Match?")) { localStorage.removeItem('penngolfRound'); location.reload(); } }
