@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Penngolf Pro Caddy</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Adding a Pixel-style font from Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #2ecc71; --bg: #121212; --card: #1e1e1e; --accent: #3498db; --danger: #e74c3c; }
@@ -14,41 +13,28 @@
         #map { height: 38vh; width: 100%; background: #222; border-bottom: 2px solid var(--primary); }
         #ui-container { height: 62vh; padding: 12px; box-sizing: border-box; overflow-y: auto; padding-bottom: 100px; }
 
-        /* 8-BIT LOGO SECTION */
-        .logo-bar { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 15px; 
-            padding: 0 5px;
+        /* UPDATED GPS BANNER with Button */
+        #gps-error { 
+            position: fixed; top: 0; width: 100%; background: var(--danger); 
+            color: white; text-align: center; padding: 12px; z-index: 3000; 
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+            font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        .perm-btn { 
+            background: white; color: var(--danger); border: none; 
+            padding: 6px 15px; border-radius: 20px; font-size: 12px; font-weight: 800; 
         }
 
-        .pixel-logo {
-            font-family: 'Press Start 2P', cursive;
-            font-size: 10px;
-            color: var(--primary);
-            text-shadow: 2px 2px 0px #000;
-            letter-spacing: 1px;
-            animation: float 3s ease-in-out infinite;
-            text-align: center;
-        }
+        .logo-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 0 5px; }
+        .pixel-logo { font-family: 'Press Start 2P', cursive; font-size: 10px; color: var(--primary); text-shadow: 2px 2px 0px #000; animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-5px); color: #fff; } 100% { transform: translateY(0px); } }
 
-        /* Nintendo-style "Floating Item" Animation */
-        @keyframes float {
-            0% { transform: translateY(0px); text-shadow: 2px 2px 0px #000; }
-            50% { transform: translateY(-5px); text-shadow: 2px 7px 2px rgba(0,0,0,0.5); color: #fff; }
-            100% { transform: translateY(0px); text-shadow: 2px 2px 0px #000; }
-        }
-
-        #gps-error { position: fixed; top: 0; width: 100%; background: var(--danger); color: white; text-align: center; padding: 10px; z-index: 3000; display: none; font-weight: bold; }
-        
         .card { background: var(--card); border-radius: 12px; padding: 15px; border: 1px solid #333; margin-bottom: 10px; }
         .big-number { font-size: 42px; font-weight: 900; color: var(--primary); line-height: 1; }
         .label { color: #888; font-size: 10px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; }
 
         .score-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; }
-        .adjust-btn { width: 50px; height: 50px; border-radius: 50%; border: none; background: #333; color: white; font-size: 24px; font-weight: bold; display: flex; align-items: center; justify-content: center; }
-        
+        .adjust-btn { width: 50px; height: 50px; border-radius: 50%; border: none; background: #333; color: white; font-size: 24px; font-weight: bold; }
         .btn-group { display: flex; gap: 8px; margin-top: 8px; }
         .par-btn { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #252525; color: white; font-weight: bold; position: relative; }
         .par-btn.active { background: var(--accent); border-color: var(--accent); }
@@ -57,20 +43,22 @@
         #shot-overlay { position: absolute; top: 15px; right: 60px; z-index: 1000; display: flex; align-items: center; gap: 10px; }
         #live-shot-counter { background: rgba(0,0,0,0.85); padding: 8px 12px; border-radius: 15px; border: 1px solid var(--primary); font-weight: 900; color: var(--primary); display: none; }
         #shot-btn { background: var(--primary); color: black; border: none; padding: 10px 18px; border-radius: 25px; font-weight: 900; }
-        #shot-btn.tracking { background: var(--danger); color: white; }
         
         #map-actions { position: absolute; top: 60px; right: 10px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
-        .map-sub-btn { background: white; border: none; border-radius: 8px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
-
-        #scorecard-modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.98); z-index: 2000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        .map-sub-btn { background: white; border: none; border-radius: 8px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+        .main-btn { background: var(--primary); color: black; border: none; padding: 16px; border-radius: 12px; width: 100%; font-weight: 800; margin-top: 10px; }
+        
+        #scorecard-modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.98); z-index: 2000; padding: 20px; box-sizing: border-box; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; color: white; }
         th, td { border: 1px solid #444; padding: 10px; text-align: center; }
-        .main-btn { background: var(--primary); color: black; border: none; padding: 16px; border-radius: 12px; width: 100%; font-weight: 800; margin-top: 10px; font-size: 16px; }
     </style>
 </head>
 <body>
 
-    <div id="gps-error">GPS Disabled. Please enable location.</div>
+    <div id="gps-error">
+        <span>GPS Permission Required</span>
+        <button class="perm-btn" onclick="requestGPS()">ENABLE LOCATION</button>
+    </div>
 
     <div id="shot-overlay">
         <div id="live-shot-counter">0 YDS</div>
@@ -89,12 +77,9 @@
     <div id="map"></div>
 
     <div id="ui-container">
-        <!-- THE NEW LOGO BAR -->
         <div class="logo-bar">
             <div id="unit-toggle" class="label" style="background:#333; padding:5px 10px; border-radius:15px; color:var(--primary); min-width: 60px; text-align: center;" onclick="cycleUnits()">YDS</div>
-            
             <div class="pixel-logo">MPENN GOLF</div>
-            
             <div id="live-total" style="background:#333; padding:5px 12px; border-radius:15px; font-weight:800; font-size:12px; min-width: 60px; text-align: center;">TOT: E</div>
         </div>
 
@@ -135,12 +120,13 @@
         <span style="float:right; font-size:40px;" onclick="toggleScorecard(false)">&times;</span>
         <h2 style="color:var(--primary); font-family: 'Press Start 2P', cursive; font-size: 14px;">Scorecard</h2>
         <div id="total-summary" style="font-size:18px; margin-bottom:20px;"></div>
-        <table><thead><tr><th>Hole</th><th>Par</th><th>Score</th><th>+/-</th></tr></thead><tbody id="card-body"></tbody></table>
+        <div style="overflow-y:auto; max-height: 70vh;">
+            <table><thead><tr><th>Hole</th><th>Par</th><th>Score</th><th>+/-</th></tr></thead><tbody id="card-body"></tbody></table>
+        </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // ... (All JS from previous builds remains identical and active) ...
         const map = L.map('map', { zoomControl: false, maxZoom: 22 }).setView([0,0], 2);
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 22, maxNativeZoom: 18 }).addTo(map);
 
@@ -151,28 +137,61 @@
 
         function haptic() { if(window.navigator.vibrate) window.navigator.vibrate(15); }
 
-        function cycleUnits() {
+        // THE "HANDSHAKE" FUNCTION
+        function requestGPS() {
             haptic();
-            currentUnit = (currentUnit === 'YDS') ? 'MTR' : 'YDS';
-            document.getElementById('unit-toggle').innerText = currentUnit;
-            updateCalculations(true);
+            // This triggers the official browser prompt because it's tied to a button click
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    document.getElementById('gps-error').style.display = 'none';
+                    startGpsWatcher(); // Once allowed, start the continuous tracking
+                },
+                (err) => {
+                    alert("Please enable Location in your phone settings to use the GPS features.");
+                },
+                { enableHighAccuracy: true }
+            );
         }
 
+        function startGpsWatcher() {
+            navigator.geolocation.watchPosition(pos => {
+                document.getElementById('gps-error').style.display = 'none';
+                userPos = [pos.coords.latitude, pos.coords.longitude];
+                
+                if (!userMarker) { 
+                    userMarker = L.circleMarker(userPos, {radius: 9, color: 'white', fillColor: '#3498db', fillOpacity: 1, weight: 3}).addTo(map); 
+                    map.setView(userPos, 19); 
+                } else userMarker.setLatLng(userPos);
+
+                if (isTrackingShot && shotStartPos) {
+                    const liveDist = convert(map.distance(shotStartPos, userPos));
+                    document.getElementById('live-shot-counter').innerText = `${liveDist} ${currentUnit}`;
+                }
+
+                if (!lastLoggedPos || map.distance(lastLoggedPos, userPos) > 3) {
+                    updateCalculations();
+                    lastLoggedPos = [...userPos];
+                }
+            }, null, { enableHighAccuracy: true });
+        }
+
+        // Try to start automatically, but if it fails, the "ENABLE LOCATION" button is there as a backup
+        startGpsWatcher();
+
+        function cycleUnits() { haptic(); currentUnit = (currentUnit === 'YDS') ? 'MTR' : 'YDS'; document.getElementById('unit-toggle').innerText = currentUnit; updateCalculations(true); }
         function convert(m) { return currentUnit === 'YDS' ? Math.round(m * 1.09361) : Math.round(m); }
         function adjustScore(v) { haptic(); currentScore = Math.max(1, currentScore + v); document.getElementById('h-score-display').innerText = currentScore; }
         function setPar(p, btn) { haptic(); currentPar = p; currentScore = p; document.getElementById('h-score-display').innerText = currentScore; document.querySelectorAll('.par-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
         function clearTarget() { haptic(); targetPos = null; if (targetMarker) map.removeLayer(targetMarker); if (targetLine) map.removeLayer(targetLine); document.getElementById('clear-target-btn').style.display = 'none'; document.getElementById('dist-raw').innerText = '--'; document.getElementById('dist-plays').innerText = '--'; document.getElementById('slope-val').innerText = '0°'; }
 
-        navigator.geolocation.watchPosition(pos => {
-            document.getElementById('gps-error').style.display = 'none';
-            userPos = [pos.coords.latitude, pos.coords.longitude];
-            if (!userMarker) { userMarker = L.circleMarker(userPos, {radius: 9, color: 'white', fillColor: '#3498db', fillOpacity: 1, weight: 3}).addTo(map); map.setView(userPos, 19); } 
-            else userMarker.setLatLng(userPos);
-            if (isTrackingShot && shotStartPos) { const liveDist = convert(map.distance(shotStartPos, userPos)); document.getElementById('live-shot-counter').innerText = `${liveDist} ${currentUnit}`; }
-            if (!lastLoggedPos || map.distance(lastLoggedPos, userPos) > 3) { updateCalculations(); lastLoggedPos = [...userPos]; }
-        }, err => { document.getElementById('gps-error').style.display = 'block'; }, { enableHighAccuracy: true });
-
-        map.on('click', e => { haptic(); targetPos = [e.latlng.lat, e.latlng.lng]; document.getElementById('clear-target-btn').style.display = 'flex'; if (!targetMarker) targetMarker = L.circleMarker(targetPos, {radius: 7, color: '#2ecc71', fillColor: 'black', fillOpacity: 0.7, weight: 3}).addTo(map); else targetMarker.setLatLng(targetPos); updateCalculations(true); });
+        map.on('click', e => {
+            haptic();
+            targetPos = [e.latlng.lat, e.latlng.lng];
+            document.getElementById('clear-target-btn').style.display = 'flex';
+            if (!targetMarker) targetMarker = L.circleMarker(targetPos, {radius: 7, color: '#2ecc71', fillColor: 'black', fillOpacity: 0.7, weight: 3}).addTo(map);
+            else targetMarker.setLatLng(targetPos);
+            updateCalculations(true);
+        });
 
         async function updateCalculations(force = false) {
             if (!userPos || !targetPos) return;
@@ -205,7 +224,7 @@
         }
 
         function toggleScorecard(show) { haptic(); const m = document.getElementById('scorecard-modal'); if (show) { const b = document.getElementById('card-body'); b.innerHTML = ""; roundData.scores.forEach(s => b.innerHTML += `<tr><td>${s.h}</td><td>${s.par}</td><td>${s.s}</td><td>${s.diff > 0 ? '+'+s.diff : (s.diff===0?'E':s.diff)}</td></tr>`); const totalDiff = roundData.totalScore - roundData.totalPar; document.getElementById('total-summary').innerText = `Total: ${roundData.totalScore} (${totalDiff > 0 ? '+'+totalDiff : (totalDiff === 0 ? 'E' : totalDiff)})`; m.style.display = "block"; } else m.style.display = "none"; }
-        function toggleShotTrack() { haptic(); const btn = document.getElementById('shot-btn'); const counter = document.getElementById('live-shot-counter'); if (!isTrackingShot) { shotStartPos = [...userPos]; isTrackingShot = true; btn.innerText = "END SHOT"; btn.classList.add('tracking'); counter.style.display = "block"; counter.innerText = `0 ${currentUnit}`; } else { const d = convert(map.distance(shotStartPos, userPos)); roundData.shotLogs.push(`Hole ${document.getElementById('hole-num').innerText}: ${d} ${currentUnit}`); isTrackingShot = false; btn.innerText = "START SHOT"; btn.classList.remove('tracking'); counter.style.display = "none"; } }
+        function toggleShotTrack() { haptic(); const btn = document.getElementById('shot-btn'); const counter = document.getElementById('live-shot-counter'); if (!isTrackingShot) { if(!userPos) { alert("Wait for GPS signal..."); return; } shotStartPos = [...userPos]; isTrackingShot = true; btn.innerText = "END SHOT"; btn.style.background = "var(--danger)"; btn.style.color = "white"; counter.style.display = "block"; counter.innerText = `0 ${currentUnit}`; } else { const d = convert(map.distance(shotStartPos, userPos)); roundData.shotLogs.push(`Hole ${document.getElementById('hole-num').innerText}: ${d} ${currentUnit}`); isTrackingShot = false; btn.innerText = "START SHOT"; btn.style.background = "var(--primary)"; btn.style.color = "black"; counter.style.display = "none"; } }
         function downloadData() { let t = "PENNGOLF ROUND SUMMARY\nSCORES:\n" + roundData.scores.map(s => `Hole ${s.h}: ${s.s} (Par ${s.par})`).join("\n"); t += "\n\nSHOT TRACKS:\n" + roundData.shotLogs.join("\n"); const blob = new Blob([t], {type: 'text/plain'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'round.txt'; a.click(); }
         function snapToUser() { haptic(); if (userPos) map.setView(userPos, 19); }
     </script>
