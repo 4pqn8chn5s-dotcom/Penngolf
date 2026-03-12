@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Elite Golf GPS - Explorer Mode</title>
+    <title>Elite Golf GPS - Steady Scan</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root { --primary: #2ecc71; --bg: #121212; --card: #1e1e1e; --accent: #3498db; }
@@ -45,7 +45,7 @@
 
     <div id="ui-container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <div class="label" id="course-status" style="color: var(--accent);">Exploring...</div>
+            <div class="label" id="course-status" style="color: var(--accent);">Ready</div>
             <div class="toggle-container">
                 <div id="unit-yds" class="toggle-btn active" onclick="setUnit('YDS')">YDS</div>
                 <div id="unit-mtr" class="toggle-btn" onclick="setUnit('MTR')">MTR</div>
@@ -100,6 +100,7 @@
         let fullScorecard = [], trackedShots = [];
         let lastScanPos = null;
         let featureLayer = L.layerGroup().addTo(map);
+        let scanTimeout;
 
         function setUnit(u) { currentUnit = u; document.getElementById('unit-yds').className = u==='YDS'?'toggle-btn active':'toggle-btn'; document.getElementById('unit-mtr').className = u==='MTR'?'toggle-btn active':'toggle-btn'; updateCalculations(); }
         function convert(m) { return currentUnit === 'YDS' ? Math.round(m * 1.09361) : Math.round(m); }
@@ -110,31 +111,33 @@
             if (!userMarker) {
                 userMarker = L.circleMarker(userPos, {radius: 8, color: '#fff', fillColor: '#2ecc71', fillOpacity: 1, weight: 3}).addTo(map);
                 map.setView(userPos, 19);
-                scanCourse(userPos[0], userPos[1]); // Initial scan
+                scanCourse(userPos[0], userPos[1]);
             } else userMarker.setLatLng(userPos);
             if (isTrackingShot) document.getElementById('shot-dist-display').innerText = `${convert(getDist(shotStartPos, userPos))} ${currentUnit}`;
             updateCalculations();
         }, null, { enableHighAccuracy: true });
 
-        // INTELLIGENT EXPLORER: Scan when map stops moving
+        // DEBOUNCED SCANNER: Only scans when you stop moving for 1000ms
         map.on('moveend', () => {
-            const center = map.getCenter();
-            if (!lastScanPos || getDist([center.lat, center.lng], [lastScanPos.lat, lastScanPos.lng]) > 600) {
-                scanCourse(center.lat, center.lng);
-            }
+            clearTimeout(scanTimeout);
+            scanTimeout = setTimeout(() => {
+                const center = map.getCenter();
+                if (!lastScanPos || getDist([center.lat, center.lng], [lastScanPos.lat, lastScanPos.lng]) > 500) {
+                    scanCourse(center.lat, center.lng);
+                }
+            }, 1000);
         });
 
         async function scanCourse(lat, lng) {
             lastScanPos = {lat, lng};
-            document.getElementById('course-status').innerText = "Scanning Area...";
-            const query = `[out:json];(node["golf"~"tee|green|hole"](around:1200,${lat},${lng});way["golf"~"tee|green|hole"](around:1200,${lat},${lng}););out center;`;
+            document.getElementById('course-status').innerText = "Scanning Course...";
+            const query = `[out:json];(node["golf"~"tee|green|hole"](around:1000,${lat},${lng});way["golf"~"tee|green|hole"](around:1000,${lat},${lng}););out center;`;
             try {
                 const res = await fetch(`https://overpass-api.de/api/overpass?data=${encodeURIComponent(query)}`);
+                if (!res.ok) throw new Error();
                 const data = await res.json();
                 
-                // Clear old features to keep map smooth
                 featureLayer.clearLayers();
-
                 data.elements.forEach(el => {
                     const pos = el.type === 'node' ? [el.lat, el.lon] : [el.center.lat, el.center.lon];
                     const type = el.tags.golf;
@@ -153,8 +156,12 @@
                         m.on('click', (e) => { L.DomEvent.stopPropagation(e); setTarget(pos); });
                     }
                 });
-                document.getElementById('course-status').innerText = data.elements.length > 0 ? "Course Data Found" : "Manual Mode";
-            } catch (e) { document.getElementById('course-status').innerText = "Network Error"; }
+                document.getElementById('course-status').innerText = "Course Intel Active";
+                document.getElementById('course-status').style.color = "var(--primary)";
+            } catch (e) { 
+                document.getElementById('course-status').innerText = "Course data not found here"; 
+                document.getElementById('course-status').style.color = "#888";
+            }
         }
 
         map.on('click', (e) => setTarget([e.latlng.lat, e.latlng.lng]));
