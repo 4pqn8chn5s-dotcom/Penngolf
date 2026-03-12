@@ -13,17 +13,14 @@
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         body { margin: 0; font-family: -apple-system, sans-serif; background: var(--bg); color: white; overflow: hidden; touch-action: manipulation; }
         
-        /* Map Setup */
-        #map { height: 38vh; width: 100%; background: #000; border-bottom: 2px solid var(--primary); z-index: 1; }
+        #map { height: 38vh; width: 100%; background: #1a1a1a; border-bottom: 2px solid var(--primary); z-index: 1; }
         #map-actions { position: absolute; top: 12px; right: 12px; z-index: 1000; display: flex; flex-direction: column; gap: 12px; }
         .map-sub-btn { background: rgba(255,255,255,0.95); border: none; border-radius: 10px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
 
-        /* Shot Tracking Overlay */
         #shot-overlay { position: absolute; top: 12px; left: 12px; z-index: 1000; display: flex; align-items: center; gap: 10px; }
         #live-shot-counter { background: rgba(0,0,0,0.85); padding: 10px 14px; border-radius: 12px; border: 1px solid var(--primary); font-family: 'Press Start 2P', cursive; font-size: 8px; color: var(--primary); display: none; backdrop-filter: blur(4px); }
         #shot-btn { background: var(--primary); color: black; border: none; padding: 12px 18px; border-radius: 25px; font-weight: 900; font-size: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
 
-        /* Dashboard UI */
         #ui-container { height: 62vh; padding: 15px; overflow-y: auto; padding-bottom: 120px; -webkit-overflow-scrolling: touch; }
         .logo-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .pixel-logo { font-family: 'Press Start 2P', cursive; font-size: 9px; color: var(--primary); }
@@ -35,7 +32,6 @@
         #caddy-box { background: rgba(46, 204, 113, 0.08); border: 1px dashed var(--primary); border-radius: 12px; padding: 12px; margin-top: 12px; display: flex; align-items: center; gap: 12px; }
         .club-suggest { font-family: 'Press Start 2P', cursive; font-size: 8px; color: var(--gold); line-height: 1.6; }
 
-        /* Controls */
         .btn-row { display: flex; gap: 10px; margin-bottom: 15px; }
         .par-btn { flex: 1; padding: 15px 5px; border-radius: 10px; border: 1px solid #333; background: #222; color: white; font-weight: 800; font-size: 11px; }
         .par-btn.active { background: var(--accent); border-color: var(--accent); }
@@ -43,10 +39,8 @@
         .main-btn { background: var(--primary); color: black; border: none; padding: 18px; border-radius: 14px; width: 100%; font-weight: 800; font-size: 14px; margin-top: 10px; }
         .util-btn { background:#2a2a2a; padding:10px 12px; border-radius:12px; color:var(--primary); font-size: 11px; border: 1px solid #333; }
 
-        /* Pop-up Notification (Toast) */
         #toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); border: 3px solid var(--primary); padding: 20px; border-radius: 15px; z-index: 5000; font-family: 'Press Start 2P', cursive; text-align: center; color: var(--primary); display: none; box-shadow: 0 0 30px rgba(46, 204, 113, 0.5); pointer-events: none; }
 
-        /* Scorecard Modal & Table Grid */
         .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.98); z-index: 2000; padding: 25px 20px; overflow-y: auto; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; border: 1px solid #444; }
         th { color: #555; font-size: 10px; text-transform: uppercase; padding: 12px 5px; background: #111; border: 1px solid #444; }
@@ -60,7 +54,6 @@
 <body>
 
     <div id="toast">PAR</div>
-
     <div id="map"></div>
     
     <div id="shot-overlay">
@@ -128,21 +121,17 @@
     <div id="bag-modal" class="modal">
         <span style="float:right; font-size:40px; color:#555;" onclick="toggleBag(false)">&times;</span>
         <h2 style="color:var(--primary); font-family:'Press Start 2P'; font-size:10px; margin-top:30px;">Smart Bag Setup</h2>
-        
         <div class="card" style="background:#222; margin-bottom:20px;">
             <p class="label" style="color:var(--gold)">1. Calibration</p>
             <div class="bag-row"><span>Driver (Total)</span><input type="number" id="cal-driver" value="250" onchange="autoGap()"></div>
             <div class="bag-row"><span>7-Iron (Total)</span><input type="number" id="cal-7iron" value="150" onchange="autoGap()"></div>
         </div>
-
         <p class="label">2. Your Clubs</p>
         <div id="bag-list"></div>
-        
         <div style="display:flex; gap:10px; margin-top:15px;">
             <input type="text" id="new-club-name" placeholder="New Club Name" style="flex:2">
             <button class="util-btn" style="flex:1" onclick="addNewClub()">+ ADD</button>
         </div>
-
         <button class="main-btn" style="background:var(--danger); color:white; margin-top:20px;" onclick="resetToStandard()">RESET TO STANDARD</button>
         <button class="main-btn" style="margin-top:10px;" onclick="toggleBag(false)">SAVE & CLOSE</button>
     </div>
@@ -159,11 +148,20 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         // --- 1. CORE STATE ---
-        const map = L.map('map', { zoomControl: false, maxZoom: 19, attributionControl: false }).setView([0,0], 2);
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}').addTo(map);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', { opacity: 0.7 }).addTo(map);
+        const map = L.map('map', { zoomControl: false, maxZoom: 18, attributionControl: false }).setView([0,0], 2);
+
+        // Primary: ArcGIS Satellite
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxNativeZoom: 18, maxZoom: 20
+        }).addTo(map);
+
+        // Fallback/Labels: Clean OpenStreetMap (HOT) - ensures if Esri fails, we see course data
+        L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{y}/{x}', {
+            opacity: 0.4, maxZoom: 20
+        }).addTo(map);
 
         let userPos, targetPos, userMarker, targetMarker, targetLine, shotStartPos;
+        let lastCalcPos = [0,0]; // For throttling
         let currentPar = 4, currentScore = 4, currentUnit = 'YDS', activeEditHole = null, isTrackingShot = false;
         let roundData = JSON.parse(localStorage.getItem('penngolfRound')) || { scores: [], shotLogs: [] };
         
@@ -171,7 +169,68 @@
         let myBag = JSON.parse(localStorage.getItem('penngolfBag')) || {...defaultBag};
         const ironOrder = ["3 Iron", "4 Iron", "5 Iron", "6 Iron", "7 Iron", "8 Iron", "9 Iron", "PW", "GW", "SW", "LW"];
 
-        // --- 2. SMART BAG LOGIC ---
+        // --- 2. LOGIC & THROTTLING ---
+        function convDist(d) { return Math.round(currentUnit === 'YDS' ? d * 1.09361 : d); }
+
+        async function updateCalculations() {
+            if (!userPos || !targetPos) return;
+            // Throttle check: Don't call API if we've moved less than 2 meters
+            const moveDist = map.distance(userPos, lastCalcPos);
+            if (moveDist < 2 && lastCalcPos[0] !== 0) return;
+            lastCalcPos = [...userPos];
+
+            if (targetLine) map.removeLayer(targetLine);
+            targetLine = L.polyline([userPos, targetPos], {color: '#2ecc71', weight: 4, dashArray: '8, 12'}).addTo(map);
+            
+            const dist = map.distance(userPos, targetPos);
+            document.getElementById('dist-raw').innerText = convDist(dist);
+            
+            let playsLikeRaw = dist;
+            try {
+                const res = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${userPos[0]},${targetPos[0]}&longitude=${userPos[1]},${targetPos[1]}`);
+                const data = await res.json();
+                if (data.elevation) {
+                    const diff = data.elevation[1] - data.elevation[0];
+                    const slope = (Math.atan(diff / dist) * (180 / Math.PI)).toFixed(1);
+                    document.getElementById('slope-val').innerText = (slope > 0 ? "+" : "") + slope + "°";
+                    playsLikeRaw = dist + (diff * 2.5);
+                }
+            } catch(e) { console.log("Elevation skip"); }
+            
+            document.getElementById('dist-plays').innerText = convDist(playsLikeRaw);
+            const targetVal = convDist(playsLikeRaw);
+            let bestClub = "None"; let closestDiff = 999;
+            Object.keys(myBag).forEach(club => {
+                let clubVal = currentUnit === 'YDS' ? myBag[club] : Math.round(myBag[club] / 1.09361);
+                let d = Math.abs(clubVal - targetVal);
+                if (d < closestDiff) { closestDiff = d; bestClub = club; }
+            });
+            document.getElementById('club-recommendation').innerText = `RECOMMEND ${bestClub.toUpperCase()} (${targetVal}${currentUnit[0]})`;
+        }
+
+        // --- 3. GPS & UI HANDLERS ---
+        navigator.geolocation.watchPosition(pos => {
+            userPos = [pos.coords.latitude, pos.coords.longitude];
+            if (!userMarker) { 
+                userMarker = L.circleMarker(userPos, {radius: 10, color: 'white', fillColor: '#3498db', fillOpacity: 1, weight: 4}).addTo(map); 
+                map.setView(userPos, 18); 
+            } else userMarker.setLatLng(userPos);
+            
+            if (isTrackingShot) {
+                const d = map.distance(shotStartPos, userPos);
+                document.getElementById('live-shot-counter').innerText = `${convDist(d)} ${currentUnit}`;
+            }
+            updateCalculations();
+        }, null, { enableHighAccuracy: true });
+
+        map.on('click', e => {
+            targetPos = [e.latlng.lat, e.latlng.lng];
+            if (!targetMarker) targetMarker = L.circleMarker(targetPos, {radius: 10, color: '#f1c40f', weight: 4, fillColor: 'transparent'}).addTo(map);
+            else targetMarker.setLatLng(targetPos);
+            document.getElementById('clear-target-btn').style.display = 'flex';
+            updateCalculations();
+        });
+
         function autoGap() {
             const dDist = parseInt(document.getElementById('cal-driver').value) || 250;
             const sDist = parseInt(document.getElementById('cal-7iron').value) || 150;
@@ -184,123 +243,43 @@
                     myBag[club] = sDist - (offset * 10);
                 }
             });
-            saveBag();
-            initBagUI();
+            saveBag(); initBagUI();
         }
 
         function initBagUI() {
-            const list = document.getElementById('bag-list');
-            list.innerHTML = "";
+            const list = document.getElementById('bag-list'); list.innerHTML = "";
             Object.keys(myBag).sort((a,b) => myBag[b] - myBag[a]).forEach(club => {
-                list.innerHTML += `<div class="bag-row">
-                    <span onclick="deleteClub('${club}')" style="color:var(--danger); font-weight:bold; padding:0 10px;">×</span>
-                    <span style="flex:1">${club}</span>
-                    <input type="number" value="${myBag[club]}" style="width:70px;" onchange="manualUpdate('${club}', this.value)">
-                </div>`;
+                list.innerHTML += `<div class="bag-row"><span onclick="deleteClub('${club}')" style="color:var(--danger); font-weight:bold; padding:0 10px;">×</span><span style="flex:1">${club}</span><input type="number" value="${myBag[club]}" style="width:70px;" onchange="manualUpdate('${club}', this.value)"></div>`;
             });
         }
 
         function manualUpdate(club, v) { myBag[club] = parseInt(v); saveBag(); }
         function deleteClub(club) { delete myBag[club]; saveBag(); initBagUI(); }
-        function addNewClub() {
-            const n = document.getElementById('new-club-name').value;
-            if(!n) return;
-            myBag[n] = 100;
-            document.getElementById('new-club-name').value = "";
-            saveBag(); initBagUI();
-        }
-        function resetToStandard() { if(confirm("Reset bag to standard 14 clubs?")) { myBag = {...defaultBag}; saveBag(); initBagUI(); } }
+        function addNewClub() { const n = document.getElementById('new-club-name').value; if(!n) return; myBag[n] = 100; document.getElementById('new-club-name').value = ""; saveBag(); initBagUI(); }
+        function resetToStandard() { if(confirm("Reset bag?")) { myBag = {...defaultBag}; saveBag(); initBagUI(); } }
         function saveBag() { localStorage.setItem('penngolfBag', JSON.stringify(myBag)); updateCalculations(); }
         function toggleBag(show) { if(show) initBagUI(); document.getElementById('bag-modal').style.display = show ? 'block' : 'none'; }
 
-        // --- 3. CALCULATIONS & GPS ---
-        async function updateCalculations() {
-            if (!userPos || !targetPos) return;
-            if (targetLine) map.removeLayer(targetLine);
-            targetLine = L.polyline([userPos, targetPos], {color: '#2ecc71', weight: 4, dashArray: '8, 12'}).addTo(map);
-            const dist = map.distance(userPos, targetPos);
-            const conv = (d) => Math.round(currentUnit === 'YDS' ? d * 1.09361 : d);
-            document.getElementById('dist-raw').innerText = conv(dist);
-            let playsLikeRaw = dist;
-            try {
-                const res = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${userPos[0]},${targetPos[0]}&longitude=${userPos[1]},${targetPos[1]}`);
-                const data = await res.json();
-                const diff = data.elevation[1] - data.elevation[0];
-                const slope = (Math.atan(diff / dist) * (180 / Math.PI)).toFixed(1);
-                document.getElementById('slope-val').innerText = (slope > 0 ? "+" : "") + slope + "°";
-                playsLikeRaw = dist + (diff * 2.5);
-                document.getElementById('dist-plays').innerText = conv(playsLikeRaw);
-            } catch(e) { document.getElementById('dist-plays').innerText = conv(dist); }
-            const targetVal = conv(playsLikeRaw);
-            let bestClub = "None"; let closestDiff = 999;
-            Object.keys(myBag).forEach(club => {
-                let clubVal = currentUnit === 'YDS' ? myBag[club] : Math.round(myBag[club] / 1.09361);
-                let d = Math.abs(clubVal - targetVal);
-                if (d < closestDiff) { closestDiff = d; bestClub = club; }
-            });
-            document.getElementById('club-recommendation').innerText = `RECOMMEND ${bestClub.toUpperCase()} (${targetVal}${currentUnit[0]})`;
-        }
-
-        navigator.geolocation.watchPosition(pos => {
-            userPos = [pos.coords.latitude, pos.coords.longitude];
-            if (!userMarker) { 
-                userMarker = L.circleMarker(userPos, {radius: 10, color: 'white', fillColor: '#3498db', fillOpacity: 1, weight: 4}).addTo(map); 
-                map.setView(userPos, 18); 
-            } else userMarker.setLatLng(userPos);
-            if (isTrackingShot) {
-                const d = map.distance(shotStartPos, userPos);
-                document.getElementById('live-shot-counter').innerText = `${Math.round(currentUnit === 'YDS' ? d * 1.09361 : d)} ${currentUnit}`;
-            }
-        }, null, { enableHighAccuracy: true });
-
-        map.on('click', e => {
-            targetPos = [e.latlng.lat, e.latlng.lng];
-            if (!targetMarker) targetMarker = L.circleMarker(targetPos, {radius: 10, color: '#f1c40f', weight: 4, fillColor: 'transparent'}).addTo(map);
-            else targetMarker.setLatLng(targetPos);
-            document.getElementById('clear-target-btn').style.display = 'flex';
-            updateCalculations();
-        });
-
-        // --- 4. SCORING & UTILS ---
-        function setPar(p, btn) { currentPar = p; currentScore = p; document.getElementById('h-score-display').innerText = p; document.querySelectorAll('.par-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
-        function adjustScore(v) { currentScore = Math.max(1, currentScore + v); document.getElementById('h-score-display').innerText = currentScore; }
-        
         function showFeedback(diff) {
-            const toast = document.getElementById('toast');
-            let msg = "PAR";
-            let color = "var(--primary)";
-            
-            if (diff === -3) { msg = "ALBATROSS!!"; color = "var(--gold)"; }
-            else if (diff === -2) { msg = "EAGLE!"; color = "var(--gold)"; }
-            else if (diff === -1) { msg = "BIRDIE!"; color = "var(--gold)"; }
-            else if (diff === 0) { msg = "PAR"; color = "var(--primary)"; }
-            else if (diff === 1) { msg = "BOGEY"; color = "var(--danger)"; }
-            else if (diff === 2) { msg = "DBL BOGEY"; color = "var(--danger)"; }
-            else { msg = "SNOWMAN..."; color = "#8e44ad"; }
-
-            toast.innerText = msg;
-            toast.style.borderColor = color;
-            toast.style.color = color;
-            toast.style.display = 'block';
-            setTimeout(() => { toast.style.display = 'none'; }, 2500);
+            const t = document.getElementById('toast'); let m = "PAR"; let c = "var(--primary)";
+            if (diff === -3) { m = "ALBATROSS!!"; c = "var(--gold)"; }
+            else if (diff === -2) { m = "EAGLE!"; c = "var(--gold)"; }
+            else if (diff === -1) { m = "BIRDIE!"; c = "var(--gold)"; }
+            else if (diff === 0) { m = "PAR"; c = "var(--primary)"; }
+            else if (diff === 1) { m = "BOGEY"; c = "var(--danger)"; }
+            else if (diff === 2) { m = "DBL BOGEY"; c = "var(--danger)"; }
+            else { m = "SNOWMAN..."; c = "#8e44ad"; }
+            t.innerText = m; t.style.borderColor = c; t.style.color = c; t.style.display = 'block';
+            setTimeout(() => { t.style.display = 'none'; }, 2500);
         }
 
         function saveAndNext() {
             const h = activeEditHole || (roundData.scores.length + 1);
             const entry = { h, par: currentPar, s: currentScore, diff: currentScore - currentPar };
-            
-            if (activeEditHole) { 
-                let idx = roundData.scores.findIndex(s => s.h === activeEditHole); 
-                roundData.scores[idx] = entry; 
-                activeEditHole = null; 
-            } else { 
-                roundData.scores.push(entry); 
-                showFeedback(entry.diff);
-            }
-            
+            if (activeEditHole) { let idx = roundData.scores.findIndex(s => s.h === activeEditHole); roundData.scores[idx] = entry; activeEditHole = null; }
+            else { roundData.scores.push(entry); showFeedback(entry.diff); }
             localStorage.setItem('penngolfRound', JSON.stringify(roundData));
-            updateUIForHole(roundData.scores.length + 1);
-            updateGrandTotals();
+            updateUIForHole(roundData.scores.length + 1); updateGrandTotals();
         }
 
         function toggleScorecard(s) { 
@@ -326,15 +305,14 @@
         }
 
         function toggleShotTrack() {
-            if (!userPos) return alert("Searching for GPS...");
+            if (!userPos) return alert("Searching GPS...");
             isTrackingShot = !isTrackingShot;
             const btn = document.getElementById('shot-btn');
-            const counter = document.getElementById('live-shot-counter');
-            if (isTrackingShot) { shotStartPos = [...userPos]; btn.innerText = "END SHOT"; btn.style.background = "var(--danger)"; counter.style.display = "block"; }
+            if (isTrackingShot) { shotStartPos = [...userPos]; btn.innerText = "END SHOT"; btn.style.background = "var(--danger)"; document.getElementById('live-shot-counter').style.display = "block"; }
             else {
                 const d = map.distance(shotStartPos, userPos);
-                roundData.shotLogs.push(`H${document.getElementById('hole-num').innerText}: ${Math.round(d * 1.09361)} YDS`);
-                btn.innerText = "START SHOT"; btn.style.background = "var(--primary)"; counter.style.display = "none";
+                roundData.shotLogs.push(`H${document.getElementById('hole-num').innerText}: ${convDist(d)} ${currentUnit}`);
+                btn.innerText = "START SHOT"; btn.style.background = "var(--primary)"; document.getElementById('live-shot-counter').style.display = "none";
                 localStorage.setItem('penngolfRound', JSON.stringify(roundData));
             }
         }
@@ -344,7 +322,10 @@
         function clearTarget() { targetPos = null; if(targetMarker) map.removeLayer(targetMarker); if(targetLine) map.removeLayer(targetLine); document.getElementById('clear-target-btn').style.display = 'none'; }
         function updateGrandTotals() { const d = roundData.scores.reduce((a, b) => a + b.diff, 0); document.getElementById('live-total').innerText = `TOT: ${d > 0 ? '+'+d : (d===0?'E':d)}`; }
         function downloadData() { let txt = "ROUND EXPORT\n" + roundData.scores.map(s => `H${s.h}: ${s.s} (Par ${s.par})`).join("\n") + "\n\nSHOT LOG:\n" + roundData.shotLogs.join("\n"); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt])); a.download = 'golf_round.txt'; a.click(); }
-        function confirmEndRound() { if(confirm("End round and clear data?")) { localStorage.removeItem('penngolfRound'); location.reload(); } }
+        function confirmEndRound() { if(confirm("Reset Match?")) { localStorage.removeItem('penngolfRound'); location.reload(); } }
+        function setPar(p, btn) { currentPar = p; currentScore = p; document.getElementById('h-score-display').innerText = p; document.querySelectorAll('.par-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
+        function adjustScore(v) { currentScore = Math.max(1, currentScore + v); document.getElementById('h-score-display').innerText = currentScore; }
+
         updateUIForHole(roundData.scores.length + 1);
         updateGrandTotals();
     </script>
