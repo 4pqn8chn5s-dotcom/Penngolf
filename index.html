@@ -14,12 +14,15 @@
         body { margin: 0; font-family: -apple-system, sans-serif; background: var(--bg); color: white; overflow: hidden; touch-action: manipulation; }
         
         #map { height: 38vh; width: 100%; background: #1a1a1a; border-bottom: 2px solid var(--primary); z-index: 1; }
-        #map-actions { position: absolute; top: 12px; right: 12px; z-index: 1000; display: flex; flex-direction: column; gap: 12px; }
-        .map-sub-btn { background: rgba(255,255,255,0.95); border: none; border-radius: 10px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
+        
+        /* BOTTOM RIGHT CONTROLS (Snap/Clear) */
+        #map-actions { position: absolute; bottom: 63vh; right: 12px; z-index: 1000; display: flex; flex-direction: column; gap: 12px; }
+        .map-sub-btn { background: rgba(255,255,255,0.95); border: none; border-radius: 12px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
 
-        #shot-overlay { position: absolute; top: 12px; left: 12px; z-index: 1000; display: flex; align-items: center; gap: 10px; }
-        #live-shot-counter { background: rgba(0,0,0,0.85); padding: 10px 14px; border-radius: 12px; border: 1px solid var(--primary); font-family: 'Press Start 2P', cursive; font-size: 8px; color: var(--primary); display: none; backdrop-filter: blur(4px); }
-        #shot-btn { background: var(--primary); color: black; border: none; padding: 12px 18px; border-radius: 25px; font-weight: 900; font-size: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        /* BOTTOM LEFT CONTROLS (Shot Tracking) */
+        #shot-overlay { position: absolute; bottom: 63vh; left: 12px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+        #live-shot-counter { background: rgba(0,0,0,0.85); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--primary); font-family: 'Press Start 2P', cursive; font-size: 8px; color: var(--primary); display: none; backdrop-filter: blur(4px); }
+        #shot-btn { background: var(--primary); color: black; border: none; padding: 14px 18px; border-radius: 20px; font-weight: 900; font-size: 11px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); text-transform: uppercase; }
 
         #ui-container { height: 62vh; padding: 15px; overflow-y: auto; padding-bottom: 120px; -webkit-overflow-scrolling: touch; }
         .logo-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
@@ -241,7 +244,6 @@
                 map.setView(userPos, 18); 
             } else userMarker.setLatLng(userPos);
             
-            // Sync line with user moving
             if (targetPos && targetLine) {
                 targetLine.setLatLngs([userPos, targetPos]);
                 updateCalculations();
