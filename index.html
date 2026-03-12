@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Penngolf Caddy</title>
+    <title>Penngolf Caddy + Live Track</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root { --primary: #2ecc71; --bg: #121212; --card: #1e1e1e; --accent: #3498db; }
@@ -15,84 +15,81 @@
         .big-number { font-size: 42px; font-weight: 900; color: var(--primary); line-height: 1; }
         .label { color: #888; font-size: 10px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; }
 
-        /* Par & Score Controls */
-        .btn-group { display: flex; gap: 8px; margin-top: 8px; }
-        .par-btn { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #444; background: #252525; color: white; font-weight: bold; cursor: pointer; }
-        .par-btn.active { background: var(--accent); border-color: var(--accent); }
+        .toggle-container { background: #333; border-radius: 20px; padding: 2px; display: flex; width: 80px; }
+        .toggle-btn { flex: 1; text-align: center; padding: 4px 0; border-radius: 18px; font-size: 9px; font-weight: bold; cursor: pointer; color: #888; }
+        .toggle-btn.active { background: var(--primary); color: black; }
         
         .score-pill { background: #333; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 14px; }
         .plus { color: #e74c3c; } .minus { color: var(--primary); } .even { color: #f1c40f; }
 
-        /* Overlays */
-        #shot-overlay { position: absolute; top: 15px; right: 60px; z-index: 1000; }
-        #shot-btn { background: var(--primary); color: black; border: none; padding: 10px 18px; border-radius: 25px; font-weight: 900; }
+        .btn-group { display: flex; gap: 8px; margin-top: 8px; }
+        .par-btn { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #444; background: #252525; color: white; font-weight: bold; }
+        .par-btn.active { background: var(--accent); border-color: var(--accent); }
+
+        /* Enhanced Shot Tracker UI */
+        #shot-overlay { position: absolute; top: 15px; right: 60px; z-index: 1000; display: flex; align-items: center; gap: 10px; }
+        #live-shot-counter { background: rgba(0,0,0,0.8); padding: 8px 12px; border-radius: 15px; border: 1px solid var(--primary); font-weight: 900; font-size: 14px; color: var(--primary); display: none; }
+        #shot-btn { background: var(--primary); color: black; border: none; padding: 10px 18px; border-radius: 25px; font-weight: 900; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        #shot-btn.tracking { background: #e74c3c; color: white; }
+        
         #locate-btn { position: absolute; top: 10px; right: 10px; z-index: 1000; background: white; border: none; border-radius: 8px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
-        
-        /* Modal Scorecard */
+
         #scorecard-modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.95); z-index: 2000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
-        .close-modal { position: absolute; top: 20px; right: 20px; font-size: 30px; font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #444; padding: 10px; text-align: center; }
-        
-        .main-btn { background: var(--primary); color: black; border: none; padding: 14px; border-radius: 10px; width: 100%; font-weight: 800; cursor: pointer; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; color: white; }
+        th, td { border: 1px solid #444; padding: 8px; text-align: center; }
+        .main-btn { background: var(--primary); color: black; border: none; padding: 14px; border-radius: 10px; width: 100%; font-weight: 800; margin-top: 10px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <button id="locate-btn" onclick="snapToUser()">
-        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
-    </button>
+    <button id="locate-btn" onclick="snapToUser()"><svg viewBox="0 0 24 24" width="24" height="24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg></button>
+    
+    <div id="shot-overlay">
+        <div id="live-shot-counter">0 YDS</div>
+        <button id="shot-btn" onclick="toggleShotTrack()">START SHOT</button>
+    </div>
 
-    <div id="shot-overlay"><button id="shot-btn" onclick="toggleShotTrack()">START SHOT</button></div>
     <div id="map"></div>
 
     <div id="ui-container">
-        <!-- Live Totals -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <div id="status-bar" class="label">GPS: Standby</div>
+            <div class="toggle-container">
+                <div id="unit-yds" class="toggle-btn active" onclick="setUnit('YDS')">YDS</div>
+                <div id="unit-mtr" class="toggle-btn" onclick="setUnit('MTR')">MTR</div>
+            </div>
             <div id="live-total" class="score-pill even">TOT: E</div>
         </div>
-        
-        <!-- Distance Card -->
+
         <div class="card">
             <div style="display: flex; justify-content: space-between; text-align: center;">
                 <div style="flex: 1;"><div class="label">Actual</div><div id="dist-raw" class="big-number">--</div></div>
                 <div style="flex: 1; border-left: 1px solid #333; border-right: 1px solid #333;"><div class="label">Plays Like</div><div id="dist-plays" class="big-number">--</div></div>
-                <div style="flex: 1;"><div class="label">Slope</div><div id="slope-val" class="big-number" style="font-size: 24px; padding-top:12px;">0°</div></div>
+                <div style="flex: 1;"><div class="label">Slope</div><div id="slope-val" class="big-number" style="font-size: 22px; padding-top:14px;">0°</div></div>
             </div>
         </div>
 
-        <!-- Scoring Card -->
         <div class="card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <span class="label">Hole <span id="hole-num" style="color:white; font-size:18px;">1</span></span>
-                <div>
-                    <span class="label">Score</span> 
-                    <input type="number" id="h-score" value="4" style="background:#333; border:none; color:white; padding:5px; border-radius:4px; width:40px; text-align:center;">
-                </div>
+                <div><span class="label">Score</span> <input type="number" id="h-score" value="4" style="background:#333; border:none; color:white; width:40px; text-align:center;"></div>
             </div>
-            <div class="label">Set Hole Par</div>
             <div class="btn-group">
                 <button class="par-btn" onclick="setPar(3, this)">PAR 3</button>
                 <button class="par-btn active" onclick="setPar(4, this)">PAR 4</button>
                 <button class="par-btn" onclick="setPar(5, this)">PAR 5</button>
             </div>
-            <button class="main-btn" onclick="saveAndNext()">FINISH HOLE & NEXT</button>
+            <button class="main-btn" onclick="saveAndNext()">FINISH HOLE</button>
         </div>
 
         <button class="main-btn" style="background:#444; color:white;" onclick="toggleScorecard(true)">VIEW SCORECARD</button>
-        <button class="main-btn" style="background:#3498db; color:white;" onclick="downloadData()">DOWNLOAD ROUND (.TXT)</button>
+        <button class="main-btn" style="background:#3498db; color:white;" onclick="downloadData()">DOWNLOAD ROUND</button>
     </div>
 
-    <!-- Scorecard Modal -->
     <div id="scorecard-modal">
-        <span class="close-modal" onclick="toggleScorecard(false)">&times;</span>
-        <h2>Round Scorecard</h2>
-        <div id="total-summary" style="font-size: 20px; font-weight: bold; margin-bottom: 10px;"></div>
-        <table id="card-table">
-            <thead><tr><th>Hole</th><th>Par</th><th>Score</th><th>+/-</th></tr></thead>
-            <tbody id="card-body"></tbody>
-        </table>
+        <span style="float:right; font-size:30px; cursor:pointer;" onclick="toggleScorecard(false)">&times;</span>
+        <h2>Scorecard</h2>
+        <div id="total-summary" style="font-weight: bold; margin-bottom: 15px;"></div>
+        <table id="card-table"><thead><tr><th>Hole</th><th>Par</th><th>Score</th><th>+/-</th></tr></thead><tbody id="card-body"></tbody></table>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -100,22 +97,34 @@
         const map = L.map('map', { zoomControl: false, maxZoom: 22 }).setView([0,0], 2);
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 22, maxNativeZoom: 18 }).addTo(map);
 
-        let userMarker, targetMarker, targetLine, userPos = null, targetPos = null;
-        let shotStartPos = null, isTrackingShot = false, currentPar = 4;
-        let roundData = { scores: [], totalPar: 0, totalScore: 0 };
-        let dataLayer = L.layerGroup().addTo(map);
+        let userPos, targetPos, userMarker, targetMarker, targetLine, shotStartPos;
+        let isTrackingShot = false, currentPar = 4, currentUnit = 'YDS';
+        let roundData = { scores: [], totalPar: 0, totalScore: 0, shotLogs: [] };
 
-        navigator.geolocation.watchPosition((pos) => {
+        function setUnit(u) { 
+            currentUnit = u; 
+            document.getElementById('unit-yds').classList.toggle('active', u==='YDS'); 
+            document.getElementById('unit-mtr').classList.toggle('active', u==='MTR'); 
+            updateCalculations(); 
+        }
+        function convert(m) { return currentUnit === 'YDS' ? Math.round(m * 1.09361) : Math.round(m); }
+
+        navigator.geolocation.watchPosition(pos => {
             userPos = [pos.coords.latitude, pos.coords.longitude];
-            document.getElementById('status-bar').innerText = "GPS: " + Math.round(pos.coords.accuracy) + "m";
-            if (!userMarker) {
-                userMarker = L.circleMarker(userPos, {radius: 8, color: 'white', fillColor: '#3498db', fillOpacity: 1, weight: 3}).addTo(map);
-                map.setView(userPos, 19);
+            if (!userMarker) { 
+                userMarker = L.circleMarker(userPos, {radius: 8, color: 'white', fillColor: '#3498db', fillOpacity: 1, weight: 3}).addTo(map); 
+                map.setView(userPos, 19); 
             } else userMarker.setLatLng(userPos);
+
+            if (isTrackingShot && shotStartPos) {
+                const liveDist = convert(map.distance(shotStartPos, userPos));
+                const counter = document.getElementById('live-shot-counter');
+                counter.innerText = `${liveDist} ${currentUnit}`;
+            }
             updateCalculations();
         }, null, { enableHighAccuracy: true });
 
-        map.on('click', (e) => {
+        map.on('click', e => {
             targetPos = [e.latlng.lat, e.latlng.lng];
             if (!targetMarker) targetMarker = L.circleMarker(targetPos, {radius: 6, color: '#2ecc71', fillColor: 'black', fillOpacity: 0.6}).addTo(map);
             else targetMarker.setLatLng(targetPos);
@@ -125,78 +134,72 @@
         async function updateCalculations() {
             if (!userPos || !targetPos) return;
             if (targetLine) map.removeLayer(targetLine);
-            targetLine = L.polyline([userPos, targetPos], {color: '#2ecc71', weight: 2, dashArray: '5, 10'}).addTo(map);
-            const mtrs = map.distance(userPos, targetPos);
-            const yds = Math.round(mtrs * 1.09361);
-            document.getElementById('dist-raw').innerText = yds;
+            targetLine = L.polyline([userPos, targetPos], {color: '#2ecc71', weight: 2, dashArray: '5,10'}).addTo(map);
+            const m = map.distance(userPos, targetPos);
+            document.getElementById('dist-raw').innerText = convert(m);
             try {
                 const res = await fetch(`https://api.open-elevation.com/api/v1/lookup?locations=${userPos[0]},${userPos[1]}|${targetPos[0]},${targetPos[1]}`);
                 const data = await res.json();
-                const elevDiff = data.results[1].elevation - data.results[0].elevation;
-                document.getElementById('slope-val').innerText = (Math.atan(elevDiff / mtrs) * (180 / Math.PI)).toFixed(1) + "°";
-                document.getElementById('dist-plays').innerText = Math.round((mtrs + (elevDiff * 1.1)) * 1.09361);
-            } catch (e) { document.getElementById('dist-plays').innerText = yds; }
+                const diff = data.results[1].elevation - data.results[0].elevation;
+                document.getElementById('slope-val').innerText = (Math.atan(diff / m) * (180 / Math.PI)).toFixed(1) + "°";
+                document.getElementById('dist-plays').innerText = convert(m + (diff * 1.1));
+            } catch(e) { document.getElementById('dist-plays').innerText = convert(m); }
         }
 
-        function setPar(p, btn) {
-            currentPar = p;
-            document.querySelectorAll('.par-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            document.getElementById('h-score').value = p; // Suggest par as score
-        }
+        function setPar(p, btn) { currentPar = p; document.querySelectorAll('.par-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.getElementById('h-score').value = p; }
 
         function saveAndNext() {
-            const hole = parseInt(document.getElementById('hole-num').innerText);
-            const score = parseInt(document.getElementById('h-score').value);
-            const diff = score - currentPar;
-            
-            roundData.scores.push({ hole, par: currentPar, score, diff });
-            roundData.totalPar += currentPar;
-            roundData.totalScore += score;
-            
+            const h = parseInt(document.getElementById('hole-num').innerText);
+            const s = parseInt(document.getElementById('h-score').value);
+            roundData.scores.push({ h, par: currentPar, s, diff: s - currentPar });
+            roundData.totalPar += currentPar; roundData.totalScore += s;
             updateLiveTotal();
-            document.getElementById('hole-num').innerText = hole + 1;
-            document.getElementById('h-score').value = 4; // reset default
+            document.getElementById('hole-num').innerText = h + 1;
         }
 
         function updateLiveTotal() {
-            const diff = roundData.totalScore - roundData.totalPar;
+            const d = roundData.totalScore - roundData.totalPar;
             const el = document.getElementById('live-total');
-            if (diff === 0) { el.innerText = "TOT: E"; el.className = "score-pill even"; }
-            else if (diff > 0) { el.innerText = "TOT: +" + diff; el.className = "score-pill plus"; }
-            else { el.innerText = "TOT: " + diff; el.className = "score-pill minus"; }
+            el.innerText = `TOT: ${d > 0 ? '+' + d : (d === 0 ? 'E' : d)}`;
+            el.className = `score-pill ${d > 0 ? 'plus' : (d === 0 ? 'even' : 'minus')}`;
         }
 
         function toggleScorecard(show) {
-            const modal = document.getElementById('scorecard-modal');
+            const m = document.getElementById('scorecard-modal');
             if (show) {
-                const body = document.getElementById('card-body');
-                body.innerHTML = "";
-                roundData.scores.forEach(s => {
-                    const row = `<tr><td>${s.hole}</td><td>${s.par}</td><td>${s.score}</td><td>${s.diff > 0 ? '+'+s.diff : (s.diff === 0 ? 'E' : s.diff)}</td></tr>`;
-                    body.innerHTML += row;
-                });
+                const b = document.getElementById('card-body'); b.innerHTML = "";
+                roundData.scores.forEach(s => b.innerHTML += `<tr><td>${s.h}</td><td>${s.par}</td><td>${s.s}</td><td>${s.diff > 0 ? '+'+s.diff : (s.diff===0?'E':s.diff)}</td></tr>`);
                 const totalDiff = roundData.totalScore - roundData.totalPar;
-                document.getElementById('total-summary').innerText = `Total Score: ${roundData.totalScore} (${totalDiff > 0 ? '+'+totalDiff : (totalDiff === 0 ? 'E' : totalDiff)})`;
-                modal.style.display = "block";
-            } else { modal.style.display = "none"; }
-        }
-
-        function downloadData() {
-            let txt = "PENNGOLF SCORECARD\n==================\n";
-            roundData.scores.forEach(s => {
-                txt += `Hole ${s.hole} | Par ${s.par} | Score ${s.score} | (+/- ${s.diff})\n`;
-            });
-            txt += `\nFINAL TOTAL: ${roundData.totalScore} (${roundData.totalScore - roundData.totalPar})`;
-            const blob = new Blob([txt], { type: 'text/plain' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = 'round.txt'; a.click();
+                document.getElementById('total-summary').innerText = `Total: ${roundData.totalScore} (${totalDiff > 0 ? '+'+totalDiff : (totalDiff === 0 ? 'E' : totalDiff)})`;
+                m.style.display = "block";
+            } else m.style.display = "none";
         }
 
         function toggleShotTrack() {
             const btn = document.getElementById('shot-btn');
-            if (!isTrackingShot) { shotStartPos = [...userPos]; isTrackingShot = true; btn.innerText = "STOP"; }
-            else { isTrackingShot = false; btn.innerText = "START SHOT"; }
+            const counter = document.getElementById('live-shot-counter');
+            if (!isTrackingShot) { 
+                shotStartPos = [...userPos]; 
+                isTrackingShot = true; 
+                btn.innerText = "END SHOT"; 
+                btn.classList.add('tracking');
+                counter.style.display = "block";
+                counter.innerText = `0 ${currentUnit}`;
+            } else { 
+                const d = convert(map.distance(shotStartPos, userPos));
+                roundData.shotLogs.push(`Hole ${document.getElementById('hole-num').innerText}: ${d} ${currentUnit}`);
+                isTrackingShot = false; 
+                btn.innerText = "START SHOT"; 
+                btn.classList.remove('tracking');
+                counter.style.display = "none";
+            }
+        }
+
+        function downloadData() {
+            let t = "ROUND SUMMARY\nSCORES:\n" + roundData.scores.map(s => `Hole ${s.h}: ${s.s} (Par ${s.par})`).join("\n");
+            t += "\n\nSHOTS:\n" + roundData.shotLogs.join("\n");
+            const blob = new Blob([t], {type: 'text/plain'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'round.txt'; a.click();
         }
         function snapToUser() { if (userPos) map.setView(userPos, 19); }
     </script>
