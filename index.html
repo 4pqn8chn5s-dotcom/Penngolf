@@ -32,7 +32,8 @@
         .map-sub-btn { background: white; border: none; border-radius: 8px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
         #scorecard-modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.98); z-index: 2000; padding: 20px; box-sizing: border-box; overflow-y: auto; overflow-x: hidden; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; color: white; }
-        th, td { border: 1px solid #444; padding: 10px; text-align: center; font-size: 14px; }
+        th, td { border: 1px solid #444; padding: 12px 10px; text-align: center; font-size: 14px; }
+        tr.clickable:active { background: #333; }
         .main-btn { background: var(--primary); color: black; border: none; padding: 16px; border-radius: 12px; width: 100%; font-weight: 800; margin-top: 10px; font-size: 16px; }
         .end-btn { background: var(--danger); color: white; border: none; padding: 16px; border-radius: 12px; width: 100%; font-weight: 800; margin-top: 20px; font-family: 'Press Start 2P', cursive; font-size: 10px; }
     </style>
@@ -73,20 +74,17 @@
         </div>
 
         <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <button onclick="previousHole()" style="background:none; border:none; color:var(--accent); padding:0; display:flex; align-items:center;">
-                        <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
-                    </button>
-                    <span class="label" style="font-size:14px; color:white;">Hole <span id="hole-num">1</span></span>
-                </div>
-                <span class="label" style="color:var(--accent);">Select Par</span>
+            <div style="margin-bottom: 10px;">
+                <span class="label" style="font-size:14px; color:white;">Hole <span id="hole-num">1</span></span>
+                <span id="edit-indicator" class="label" style="color:var(--accent); margin-left:10px; display:none;">(EDITING)</span>
             </div>
+            
             <div class="btn-group" style="margin-bottom: 20px;">
                 <button class="par-btn" onclick="setPar(3, this)">3</button>
                 <button class="par-btn active" onclick="setPar(4, this)">4</button>
                 <button class="par-btn" onclick="setPar(5, this)">5</button>
             </div>
+            
             <div class="score-row">
                 <span class="label">Hole Score</span>
                 <div style="display:flex; align-items:center; gap:20px;">
@@ -95,7 +93,8 @@
                     <button class="adjust-btn" onclick="adjustScore(1)">+</button>
                 </div>
             </div>
-            <button class="main-btn" onclick="saveAndNext()">FINISH HOLE</button>
+            
+            <button id="finish-btn" class="main-btn" onclick="saveAndNext()">FINISH HOLE</button>
         </div>
 
         <button class="main-btn" style="background:#444; color:white;" onclick="toggleScorecard(true)">VIEW SCORECARD</button>
@@ -105,6 +104,7 @@
     <div id="scorecard-modal">
         <span style="float:right; font-size:40px; padding: 10px;" onclick="toggleScorecard(false)">&times;</span>
         <h2 style="color:var(--primary); font-family: 'Press Start 2P', cursive; font-size: 14px; margin-top: 40px;">Scorecard</h2>
+        <p class="label" style="margin-bottom: 10px; color: #aaa;">Tap any row to edit hole</p>
         <div id="total-summary" style="font-size:18px; margin-bottom:20px; font-weight: bold;"></div>
         <table><thead><tr><th>Hole</th><th>Par</th><th>Score</th><th>+/-</th></tr></thead><tbody id="card-body"></tbody></table>
         <button class="end-btn" onclick="confirmEndRound()">END ROUND</button>
@@ -113,57 +113,96 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const map = L.map('map', { zoomControl: false, maxZoom: 22, attributionControl: false }).setView([0,0], 2);
-        
-        // STABLE 2026 ESRI PROVIDER
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            maxZoom: 22, maxNativeZoom: 18
-        }).addTo(map);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 22, maxNativeZoom: 18 }).addTo(map);
 
         let userPos, targetPos, userMarker, targetMarker, targetLine, shotStartPos;
         let isTrackingShot = false, currentPar = 4, currentScore = 4, currentUnit = 'YDS';
         let roundData = { scores: [], totalPar: 0, totalScore: 0, shotLogs: [] };
-        let lastLoggedPos = null;
-        let updateTimer = null;
+        let activeEditHole = null; // null means playing the latest hole
 
-        // LOAD PERSISTENCE
         if (localStorage.getItem('penngolfRound')) {
             roundData = JSON.parse(localStorage.getItem('penngolfRound'));
             updateGrandTotals();
-            document.getElementById('hole-num').innerText = roundData.scores.length + 1;
+            updateUIForHole(roundData.scores.length + 1);
         }
 
         function haptic() { if(window.navigator.vibrate) window.navigator.vibrate(15); }
         function cycleUnits() { haptic(); currentUnit = (currentUnit === 'YDS') ? 'MTR' : 'YDS'; document.getElementById('unit-toggle').innerText = currentUnit; updateCalculations(true); }
         function convert(m) { return currentUnit === 'YDS' ? Math.round(m * 1.09361) : Math.round(m); }
-        function adjustScore(v) { haptic(); currentScore = Math.max(1, currentScore + v); document.getElementById('h-score-display').innerText = currentScore; }
-        function setPar(p, btn) { haptic(); currentPar = p; currentScore = p; document.getElementById('h-score-display').innerText = currentScore; document.querySelectorAll('.par-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
+        
+        function adjustScore(v) { 
+            haptic(); 
+            currentScore = Math.max(1, currentScore + v); 
+            document.getElementById('h-score-display').innerText = currentScore;
+        }
+
+        function setPar(p, btn) { 
+            haptic(); 
+            currentPar = p; 
+            document.querySelectorAll('.par-btn').forEach(b => b.classList.remove('active')); 
+            btn.classList.add('active');
+        }
+
+        function editSpecificHole(h) {
+            haptic();
+            activeEditHole = h;
+            toggleScorecard(false);
+            updateUIForHole(h);
+        }
+
+        function updateUIForHole(h) {
+            document.getElementById('hole-num').innerText = h;
+            const existing = roundData.scores.find(s => s.h === h);
+
+            if (existing) {
+                currentScore = existing.s;
+                currentPar = existing.par;
+                document.getElementById('edit-indicator').style.display = 'inline';
+                document.getElementById('finish-btn').innerText = "SAVE EDIT";
+                document.getElementById('finish-btn').style.background = "var(--accent)";
+            } else {
+                currentScore = 4;
+                currentPar = 4;
+                document.getElementById('edit-indicator').style.display = 'none';
+                document.getElementById('finish-btn').innerText = "FINISH HOLE";
+                document.getElementById('finish-btn').style.background = "var(--primary)";
+            }
+
+            document.getElementById('h-score-display').innerText = currentScore;
+            document.querySelectorAll('.par-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (parseInt(btn.innerText) === currentPar) btn.classList.add('active');
+            });
+        }
+
+        function saveAndNext() {
+            haptic();
+            if (activeEditHole) {
+                // UPDATE EXISTING
+                let idx = roundData.scores.findIndex(s => s.h === activeEditHole);
+                roundData.scores[idx] = { h: activeEditHole, par: currentPar, s: currentScore, diff: currentScore - currentPar };
+                activeEditHole = null; // Clear edit mode
+            } else {
+                // REGULAR SAVE
+                let h = roundData.scores.length + 1;
+                roundData.scores.push({ h: h, par: currentPar, s: currentScore, diff: currentScore - currentPar });
+            }
+            
+            updateGrandTotals();
+            localStorage.setItem('penngolfRound', JSON.stringify(roundData));
+            updateUIForHole(roundData.scores.length + 1);
+        }
 
         navigator.geolocation.watchPosition(pos => {
             document.getElementById('gps-error').style.display = 'none';
             userPos = [pos.coords.latitude, pos.coords.longitude];
-            if (!userMarker) { 
-                userMarker = L.circleMarker(userPos, {radius: 9, color: 'white', fillColor: '#3498db', fillOpacity: 1, weight: 3}).addTo(map); 
-                map.setView(userPos, 19); 
-            } else userMarker.setLatLng(userPos);
-
-            if (isTrackingShot && shotStartPos) { 
-                const liveDist = convert(map.distance(shotStartPos, userPos)); 
-                document.getElementById('live-shot-counter').innerText = `${liveDist} ${currentUnit}`; 
-            }
-
-            // DEBOUNCED POSITION UPDATE (PEER REVIEW FIX)
-            if (!lastLoggedPos || map.distance(lastLoggedPos, userPos) > 3) {
-                clearTimeout(updateTimer);
-                updateTimer = setTimeout(() => {
-                    updateCalculations();
-                    lastLoggedPos = [...userPos];
-                }, 2000); 
-            }
+            if (!userMarker) { userMarker = L.circleMarker(userPos, {radius: 9, color: 'white', fillColor: '#3498db', fillOpacity: 1, weight: 3}).addTo(map); map.setView(userPos, 19); } 
+            else userMarker.setLatLng(userPos);
+            updateCalculations();
         }, err => { document.getElementById('gps-error').style.display = 'block'; }, { enableHighAccuracy: true });
 
         map.on('click', e => { 
-            haptic(); 
-            targetPos = [e.latlng.lat, e.latlng.lng]; 
+            haptic(); targetPos = [e.latlng.lat, e.latlng.lng]; 
             document.getElementById('clear-target-btn').style.display = 'flex'; 
             if (!targetMarker) targetMarker = L.circleMarker(targetPos, {radius: 7, color: '#2ecc71', fillColor: 'black', fillOpacity: 0.7, weight: 3}).addTo(map); 
             else targetMarker.setLatLng(targetPos); 
@@ -176,47 +215,15 @@
             targetLine = L.polyline([userPos, targetPos], {color: '#2ecc71', weight: 3, dashArray: '8, 12'}).addTo(map);
             const m = map.distance(userPos, targetPos);
             document.getElementById('dist-raw').innerText = convert(m);
-            
             try {
-                // OPEN-METEO API (PEER REVIEW FIX)
                 const res = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${userPos[0]},${targetPos[0]}&longitude=${userPos[1]},${targetPos[1]}`);
                 const data = await res.json();
-                if(data.elevation && data.elevation.length >= 2) {
+                if(data.elevation) {
                     const diff = data.elevation[1] - data.elevation[0];
                     document.getElementById('slope-val').innerText = (Math.atan(diff / m) * (180 / Math.PI)).toFixed(1) + "°";
                     document.getElementById('dist-plays').innerText = convert(m + (diff * 1.1));
-                    document.getElementById('plays-label').innerText = "Plays Like";
                 }
-            } catch(e) { 
-                document.getElementById('dist-plays').innerText = convert(m); 
-                document.getElementById('plays-label').innerText = "Plays Like (RAW)";
-            }
-        }
-
-        function saveAndNext() {
-            haptic();
-            const h = parseInt(document.getElementById('hole-num').innerText);
-            if (h >= 18) { if(confirm("18 holes complete. End round?")) { confirmEndRound(); return; } }
-            roundData.scores.push({ h, par: currentPar, s: currentScore, diff: currentScore - currentPar });
-            updateGrandTotals();
-            document.getElementById('hole-num').innerText = h + 1;
-            currentScore = 4; setPar(4, document.querySelectorAll('.par-btn')[1]);
-            localStorage.setItem('penngolfRound', JSON.stringify(roundData));
-        }
-
-        function previousHole() {
-            haptic();
-            if (roundData.scores.length === 0) return;
-            const last = roundData.scores.pop();
-            document.getElementById('hole-num').innerText = last.h;
-            currentScore = last.s; currentPar = last.par;
-            document.getElementById('h-score-display').innerText = currentScore;
-            document.querySelectorAll('.par-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (parseInt(btn.innerText) === currentPar) btn.classList.add('active');
-            });
-            updateGrandTotals();
-            localStorage.setItem('penngolfRound', JSON.stringify(roundData));
+            } catch(e) { document.getElementById('dist-plays').innerText = convert(m); }
         }
 
         function updateGrandTotals() {
@@ -229,7 +236,6 @@
         }
 
         function confirmEndRound() {
-            haptic();
             if(confirm("End round and save final scorecard?")) {
                 downloadData();
                 localStorage.removeItem('penngolfRound');
@@ -238,12 +244,12 @@
         }
 
         function toggleScorecard(show) { 
-            haptic(); 
             const m = document.getElementById('scorecard-modal'); 
             if (show) { 
-                const b = document.getElementById('card-body'); 
-                b.innerHTML = ""; 
-                roundData.scores.forEach(s => b.innerHTML += `<tr><td>${s.h}</td><td>${s.par}</td><td>${s.s}</td><td>${s.diff > 0 ? '+'+s.diff : (s.diff===0?'E':s.diff)}</td></tr>`); 
+                const b = document.getElementById('card-body'); b.innerHTML = ""; 
+                roundData.scores.sort((x,y)=>x.h-y.h).forEach(s => {
+                    b.innerHTML += `<tr class="clickable" onclick="editSpecificHole(${s.h})"><td>${s.h}</td><td>${s.par}</td><td>${s.s}</td><td>${s.diff > 0 ? '+'+s.diff : (s.diff===0?'E':s.diff)}</td></tr>`;
+                }); 
                 const totalDiff = roundData.totalScore - roundData.totalPar; 
                 document.getElementById('total-summary').innerText = `Total: ${roundData.totalScore} (${totalDiff > 0 ? '+'+totalDiff : (totalDiff === 0 ? 'E' : totalDiff)})`; 
                 m.style.display = "block"; 
@@ -251,37 +257,27 @@
         }
 
         function toggleShotTrack() { 
-            haptic(); 
-            const btn = document.getElementById('shot-btn'); 
-            const counter = document.getElementById('live-shot-counter'); 
+            const btn = document.getElementById('shot-btn'); const counter = document.getElementById('live-shot-counter'); 
             if (!isTrackingShot) { 
-                if(!userPos) return;
-                shotStartPos = [...userPos]; 
-                isTrackingShot = true; 
+                shotStartPos = [...userPos]; isTrackingShot = true; 
                 btn.innerText = "END SHOT"; btn.style.background = "var(--danger)"; btn.style.color = "white"; 
                 counter.style.display = "block"; counter.innerText = `0 ${currentUnit}`; 
             } else { 
                 const d = convert(map.distance(shotStartPos, userPos)); 
-                roundData.shotLogs.push(`Hole ${document.getElementById('hole-num').innerText}: ${d} ${currentUnit}`); 
-                isTrackingShot = false; 
-                btn.innerText = "START SHOT"; btn.style.background = "var(--primary)"; btn.style.color = "black"; 
+                roundData.shotLogs.push(`Hole ${roundData.scores.length}: ${d} ${currentUnit}`); 
+                isTrackingShot = false; btn.innerText = "START SHOT"; btn.style.background = "var(--primary)"; btn.style.color = "black"; 
                 counter.style.display = "none"; 
-                localStorage.setItem('penngolfRound', JSON.stringify(roundData));
             } 
         }
 
         function downloadData() { 
             let t = "PENNGOLF ROUND SUMMARY\nSCORES:\n" + roundData.scores.map(s => `Hole ${s.h}: ${s.s} (Par ${s.par})`).join("\n"); 
-            t += "\n\nSHOT TRACKS:\n" + roundData.shotLogs.join("\n"); 
             const blob = new Blob([t], {type: 'text/plain'}); 
-            const a = document.createElement('a'); 
-            a.href = URL.createObjectURL(blob); 
-            a.download = `round_h${roundData.scores.length}.txt`; 
-            a.click(); 
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `round_final.txt`; a.click(); 
         }
 
-        function clearTarget() { haptic(); targetPos = null; if (targetMarker) map.removeLayer(targetMarker); if (targetLine) map.removeLayer(targetLine); document.getElementById('clear-target-btn').style.display = 'none'; document.getElementById('dist-raw').innerText = '--'; document.getElementById('dist-plays').innerText = '--'; document.getElementById('slope-val').innerText = '0°'; }
-        function snapToUser() { haptic(); if (userPos) map.setView(userPos, 19); }
+        function clearTarget() { targetPos = null; if (targetMarker) map.removeLayer(targetMarker); document.getElementById('clear-target-btn').style.display = 'none'; }
+        function snapToUser() { if (userPos) map.setView(userPos, 19); }
     </script>
 </body>
 </html>
