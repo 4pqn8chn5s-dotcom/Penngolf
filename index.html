@@ -4,228 +4,109 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Elite Golf GPS</title>
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root { --primary: #2ecc71; --bg: #121212; --card: #1e1e1e; --text: #ffffff; }
-        body { margin: 0; font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); overflow: hidden; touch-action: manipulation; }
+        :root { --primary: #2ecc71; --bg: #121212; --card: #1e1e1e; }
+        body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); color: white; font-family: sans-serif; overflow: hidden; }
         
-        #map { height: 50vh; width: 100%; border-bottom: 2px solid var(--primary); }
-        #ui-container { height: 50vh; overflow-y: auto; padding: 12px; box-sizing: border-box; padding-bottom: 40px; }
+        /* Ensure map has a visible height */
+        #map { height: 50vh; width: 100%; background: #222; }
         
-        .card { background: var(--card); border-radius: 12px; padding: 12px; margin-bottom: 10px; border: 1px solid #333; }
-        .row { display: flex; justify-content: space-between; align-items: center; margin: 4px 0; }
-        .big-number { font-size: 32px; font-weight: 800; color: var(--primary); letter-spacing: -1px; }
-        .label { color: #888; font-size: 10px; text-transform: uppercase; font-weight: 600; }
-        .stat-box { text-align: center; flex: 1; }
-
-        /* Floating Shot Tracker */
-        #shot-overlay { position: absolute; top: 15px; right: 15px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; }
-        #shot-btn { background: var(--primary); color: #000; border: none; padding: 12px 20px; border-radius: 50px; font-weight: 900; box-shadow: 0 4px 15px rgba(0,0,0,0.4); transition: transform 0.1s; }
-        #shot-btn:active { transform: scale(0.95); }
-        #shot-dist-display { background: rgba(0,0,0,0.85); padding: 6px 15px; border-radius: 20px; margin-top: 8px; font-weight: 800; display: none; border: 1px solid var(--primary); font-size: 14px; }
-
-        button.main-btn { background: var(--primary); color: #000; border: none; padding: 14px; border-radius: 10px; width: 100%; font-weight: 800; font-size: 16px; margin-top: 5px; }
-        input { background: #333; border: 1px solid #444; color: white; padding: 8px; width: 45px; border-radius: 6px; text-align: center; font-size: 16px; }
-
-        /* Shot Log */
-        .log-title { font-size: 12px; color: var(--primary); font-weight: bold; margin: 10px 0 5px 5px; text-transform: uppercase; }
-        .log-item { background: #252525; padding: 8px 12px; border-radius: 8px; margin-bottom: 5px; font-size: 13px; display: flex; justify-content: space-between; border-left: 3px solid var(--primary); }
+        #ui-container { height: 50vh; overflow-y: auto; padding: 15px; box-sizing: border-box; }
+        .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 10px; border: 1px solid #333; }
+        .row { display: flex; justify-content: space-between; align-items: center; }
+        .big-number { font-size: 32px; font-weight: 800; color: var(--primary); }
+        .label { color: #888; font-size: 10px; text-transform: uppercase; }
+        
+        button { background: var(--primary); color: black; border: none; padding: 15px; border-radius: 10px; width: 100%; font-weight: bold; margin-top: 5px; cursor: pointer; }
+        
+        /* Debug Console */
+        #debug { font-size: 10px; color: #ff5555; padding: 5px; background: #000; height: 40px; overflow-y: auto; }
     </style>
 </head>
 <body>
 
-    <div id="shot-overlay">
-        <button id="shot-btn" onclick="toggleShotTrack()">START SHOT</button>
-        <div id="shot-dist-display">0 YDS</div>
-    </div>
-
     <div id="map"></div>
+    <div id="debug">System: Initializing...</div>
 
     <div id="ui-container">
-        <!-- Live Distance Stats -->
         <div class="card">
             <div class="row">
-                <div class="stat-box">
+                <div style="text-align:center; flex:1;">
                     <div class="label">Actual</div>
                     <div id="dist-raw" class="big-number">--</div>
                 </div>
-                <div class="stat-box" style="border-left: 1px solid #333; border-right: 1px solid #333;">
+                <div style="text-align:center; flex:1; border-left: 1px solid #333;">
                     <div class="label">Plays Like</div>
                     <div id="plays-like" class="big-number">--</div>
                 </div>
-                <div class="stat-box">
-                    <div class="label">Club</div>
-                    <div id="club-rec" class="big-number" style="font-size: 22px;">--</div>
-                </div>
             </div>
-            <div class="row" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #333;">
-                <span class="label">Slope: <b id="slope-val" style="color: white;">0.0°</b></span>
-                <span class="label">Target: <b id="target-status" style="color: var(--primary);">TAP MAP</b></span>
-            </div>
+            <button onclick="getLocation()">Force GPS Refresh</button>
         </div>
 
-        <!-- Scorecard -->
         <div class="card">
             <div class="row">
-                <span style="font-weight: 800; font-size: 18px;">Hole <span id="hole-num">1</span></span>
-                <div>
-                    <span class="label">Score</span> <input type="number" id="h-score" value="4">
-                    <span class="label" style="margin-left:8px;">Putts</span> <input type="number" id="h-putts" value="2">
-                </div>
+                <span>Hole <b id="hole-num">1</b></span>
+                <button style="width: auto; padding: 10px 20px;" onclick="nextHole()">Next Hole</button>
             </div>
-            <button class="main-btn" style="background: #333; color: white;" onclick="saveHole()">FINISH HOLE</button>
-        </div>
-
-        <!-- Shot Log Section -->
-        <div class="log-title">Shot History</div>
-        <div id="shot-log-list">
-            <div style="color: #666; font-size: 12px; padding-left: 5px;">No shots tracked yet...</div>
         </div>
     </div>
 
+    <!-- Load Leaflet Script -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Init Map
-        const map = L.map('map', { zoomControl: false, zoomSnap: 0.5 }).setView([0, 0], 2);
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Esri'
-        }).addTo(map);
+        const debug = document.getElementById('debug');
+        function log(msg) { debug.innerText = "Log: " + msg; }
 
-        let userMarker, targetMarker, targetLine;
-        let userPos = null;
-        let targetPos = null;
-        let shotStartPos = null;
-        let isTrackingShot = false;
+        let map, userMarker;
 
-        // GPS Precision Config
-        const geoOptions = { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 };
-
-        if (navigator.geolocation) {
-            navigator.geolocation.watchPosition(updateUserLocation, null, geoOptions);
+        // 1. Initialize Map with a fallback
+        try {
+            map = L.map('map', { zoomControl: false }).setView([0, 0], 2);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: 'OSM'
+            }).addTo(map);
+            log("Map loaded. Waiting for GPS...");
+        } catch (e) {
+            log("Map Error: " + e.message);
         }
 
-        function updateUserLocation(pos) {
-            userPos = [pos.coords.latitude, pos.coords.longitude];
-            
-            if (!userMarker) {
-                userMarker = L.circleMarker(userPos, { radius: 7, color: '#fff', fillColor: '#2ecc71', fillOpacity: 1, weight: 3 }).addTo(map);
-                map.setView(userPos, 18);
+        // 2. Critical: Request Location Correctly
+        function getLocation() {
+            if (navigator.geolocation) {
+                log("Requesting GPS Permission...");
+                navigator.geolocation.watchPosition(
+                    (pos) => {
+                        const lat = pos.coords.latitude;
+                        const lng = pos.coords.longitude;
+                        log(`GPS Fixed: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+                        
+                        const latlng = [lat, lng];
+                        if (!userMarker) {
+                            userMarker = L.circleMarker(latlng, {radius: 8, color: '#fff', fillColor: '#2ecc71', fillOpacity: 1}).addTo(map);
+                            map.setView(latlng, 18);
+                        } else {
+                            userMarker.setLatLng(latlng);
+                        }
+                    },
+                    (err) => {
+                        log("GPS Denied/Error: " + err.message);
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
             } else {
-                userMarker.setLatLng(userPos);
-            }
-
-            if (isTrackingShot) updateShotUI();
-            calculateTargetData();
-        }
-
-        // Shot Tracking
-        function toggleShotTrack() {
-            const btn = document.getElementById('shot-btn');
-            const display = document.getElementById('shot-dist-display');
-
-            if (!isTrackingShot) {
-                shotStartPos = [...userPos];
-                isTrackingShot = true;
-                btn.innerText = "END SHOT";
-                btn.style.background = "#e74c3c";
-                display.style.display = "block";
-            } else {
-                const finalDist = getDistance(shotStartPos, userPos);
-                addToLog(finalDist);
-                isTrackingShot = false;
-                btn.innerText = "START SHOT";
-                btn.style.background = "#2ecc71";
-                display.style.display = "none";
+                log("Geolocation not supported on this browser.");
             }
         }
 
-        function updateShotUI() {
-            const d = getDistance(shotStartPos, userPos);
-            document.getElementById('shot-dist-display').innerText = d + " YDS";
-        }
-
-        function addToLog(dist) {
-            const log = document.getElementById('shot-log-list');
-            if (log.innerHTML.includes("No shots tracked")) log.innerHTML = "";
-            
-            const item = document.createElement('div');
-            item.className = 'log-item';
-            const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            item.innerHTML = `<span>Shot Dist</span> <span><b>${dist} YDS</b> <small style="color:#666; margin-left:8px;">${timestamp}</small></span>`;
-            log.prepend(item);
-        }
-
-        // Map Click
-        map.on('click', (e) => {
-            targetPos = [e.latlng.lat, e.latlng.lng];
-            if (!targetMarker) {
-                targetMarker = L.circleMarker(targetPos, { radius: 5, color: var(--primary), fillColor: '#000', fillOpacity: 0.5 }).addTo(map);
-            } else {
-                targetMarker.setLatLng(targetPos);
-            }
-            document.getElementById('target-status').innerText = "LOCKED";
-            calculateTargetData();
-        });
-
-        // Math & Logic
-        function getDistance(p1, p2) {
-            if (!p1 || !p2) return 0;
-            const R = 6371000; 
-            const dLat = (p2[0] - p1[0]) * Math.PI / 180;
-            const dLon = (p2[1] - p1[1]) * Math.PI / 180;
-            const a = Math.sin(dLat/2)**2 + Math.cos(p1[0]*Math.PI/180) * Math.cos(p2[0]*Math.PI/180) * Math.sin(dLon/2)**2;
-            return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)) * 1.09361);
-        }
-
-        async function calculateTargetData() {
-            if (!userPos || !targetPos) return;
-
-            if (targetLine) map.removeLayer(targetLine);
-            targetLine = L.polyline([userPos, targetPos], {color: '#2ecc71', weight: 1.5, dashArray: '5, 8'}).addTo(map);
-
-            const distYards = getDistance(userPos, targetPos);
-            document.getElementById('dist-raw').innerText = distYards;
-
-            try {
-                const query = `{"locations":[{"latitude":${userPos[0]},"longitude":${userPos[1]}}, {"latitude":${targetPos[0]},"longitude":${targetPos[1]}}]}`;
-                const res = await fetch('https://api.open-elevation.com/api/v1/lookup', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: query
-                });
-                const data = await res.json();
-                const diffMeters = data.results[1].elevation - data.results[0].elevation;
-                const slope = (Math.atan(diffMeters / (distYards/1.09)) * (180 / Math.PI)).toFixed(1);
-                
-                document.getElementById('slope-val').innerText = slope + '°';
-                const playsLike = Math.round(distYards + (diffMeters * 3.28)); 
-                document.getElementById('plays-like').innerText = playsLike;
-                
-                // Club Rec
-                const clubs = [[230,"DR"],[210,"3W"],[190,"4i"],[175,"5i"],[160,"6i"],[145,"7i"],[130,"8i"],[115,"9i"],[100,"PW"]];
-                let rec = "WED";
-                for (let [d, c] of clubs) { if (playsLike >= d) { rec = c; break; } }
-                document.getElementById('club-rec').innerText = rec;
-
-            } catch (e) {
-                document.getElementById('plays-like').innerText = distYards;
-                document.getElementById('slope-val').innerText = "--";
-            }
-        }
-
-        function saveHole() {
+        function nextHole() {
             const h = document.getElementById('hole-num');
             h.innerText = parseInt(h.innerText) + 1;
-            if (targetMarker) map.removeLayer(targetMarker);
-            if (targetLine) map.removeLayer(targetLine);
-            targetPos = null;
-            document.getElementById('target-status').innerText = "TAP MAP";
-            document.getElementById('dist-raw').innerText = "--";
-            document.getElementById('plays-like').innerText = "--";
-            document.getElementById('club-rec').innerText = "--";
-            document.getElementById('h-score').value = 4;
-            document.getElementById('h-putts').value = 2;
         }
+
+        // Run on load
+        window.onload = getLocation;
     </script>
 </body>
 </html>
