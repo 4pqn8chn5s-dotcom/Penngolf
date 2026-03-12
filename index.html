@@ -11,86 +11,86 @@
         :root { --primary: #2ecc71; --bg: #121212; --card: #1e1e1e; --accent: #3498db; --danger: #e74c3c; --gold: #f1c40f;}
         body { margin: 0; font-family: -apple-system, sans-serif; background: var(--bg); color: white; overflow: hidden; touch-action: manipulation; }
         
-        /* Map and Floating UI */
-        #map { height: 38vh; width: 100%; background: #222; border-bottom: 2px solid var(--primary); z-index: 1; }
+        #map { height: 35vh; width: 100%; background: #222; border-bottom: 2px solid var(--primary); z-index: 1; }
         #map-actions { position: absolute; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
         .map-sub-btn { background: white; border: none; border-radius: 8px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-        .map-sub-btn:active { background: #eee; }
 
-        #ui-container { height: 62vh; padding: 12px; box-sizing: border-box; overflow-y: auto; padding-bottom: 120px; }
-        .logo-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 0 5px; }
-        .pixel-logo { font-family: 'Press Start 2P', cursive; font-size: 10px; color: var(--primary); text-shadow: 2px 2px 0px #000; letter-spacing: 1px; animation: float 3s ease-in-out infinite; }
-        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-5px); color: #fff; } 100% { transform: translateY(0px); } }
+        #shot-overlay { position: absolute; top: 10px; left: 10px; z-index: 1000; display: flex; align-items: center; gap: 8px; }
+        #live-shot-counter { background: rgba(0,0,0,0.9); padding: 8px 12px; border-radius: 12px; border: 1px solid var(--primary); font-family: 'Press Start 2P', cursive; font-size: 8px; color: var(--primary); display: none; }
+        #shot-btn { background: var(--primary); color: black; border: none; padding: 10px 15px; border-radius: 20px; font-weight: 900; font-size: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
 
-        #game-toast {
-            position: fixed; top: 15vh; left: 50%; transform: translateX(-50%);
-            z-index: 9999; text-align: center; font-family: 'Press Start 2P', cursive;
-            text-shadow: 4px 4px 0px #000; display: none; pointer-events: none; width: 90%;
-        }
-        .toast-anim { animation: toastFloat 2s ease-out forwards; font-size: 24px; }
-        @keyframes toastFloat {
-            0% { transform: translate(-50%, 0); opacity: 0; }
-            10% { transform: translate(-50%, -15px); opacity: 1; }
-            100% { transform: translate(-50%, -40px); opacity: 0; }
-        }
+        #ui-container { height: 65vh; padding: 12px; box-sizing: border-box; overflow-y: auto; padding-bottom: 120px; }
+        .logo-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .pixel-logo { font-family: 'Press Start 2P', cursive; font-size: 10px; color: var(--primary); }
 
-        .card { background: var(--card); border-radius: 12px; padding: 15px; border: 1px solid #333; margin-bottom: 10px; }
-        .big-number { font-size: 42px; font-weight: 900; color: var(--primary); line-height: 1; }
-        .label { color: #888; font-size: 10px; text-transform: uppercase; font-weight: bold; }
+        .card { background: var(--card); border-radius: 12px; padding: 15px; border: 1px solid #333; margin-bottom: 10px; position: relative; }
+        .big-number { font-size: 38px; font-weight: 900; color: var(--primary); line-height: 1; }
+        .label { color: #888; font-size: 9px; text-transform: uppercase; font-weight: bold; margin-bottom: 4px; }
+        
+        #caddy-box { background: rgba(46, 204, 113, 0.1); border: 1px dashed var(--primary); border-radius: 8px; padding: 8px; margin-top: 10px; display: flex; align-items: center; gap: 10px; }
+        .caddy-icon { font-size: 20px; }
+        .club-suggest { font-family: 'Press Start 2P', cursive; font-size: 10px; color: var(--gold); }
+
         .adjust-btn { width: 50px; height: 50px; border-radius: 50%; border: none; background: #333; color: white; font-size: 24px; }
         .par-btn { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #252525; color: white; font-weight: bold; }
         .par-btn.active { background: var(--accent); border-color: var(--accent); }
-        .main-btn { background: var(--primary); color: black; border: none; padding: 16px; border-radius: 12px; width: 100%; font-weight: 800; margin-top: 10px; font-size: 16px; }
-        #scorecard-modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.98); z-index: 2000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; color: white; }
-        th, td { border: 1px solid #444; padding: 12px 10px; text-align: center; }
-        .util-btn { background:#333; padding:8px 10px; border-radius:15px; color:var(--primary); font-size: 12px; min-width: 45px; text-align: center; display: flex; align-items: center; justify-content: center; }
+        .main-btn { background: var(--primary); color: black; border: none; padding: 15px; border-radius: 12px; width: 100%; font-weight: 800; margin-top: 8px; }
+        
+        .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.98); z-index: 2000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        input[type="number"] { background: #222; border: 1px solid #444; color: var(--primary); padding: 8px; border-radius: 5px; width: 60px; text-align: center; font-weight: bold; }
+        .bag-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #333; }
+        .util-btn { background:#333; padding:8px 10px; border-radius:15px; color:var(--primary); font-size: 11px; min-width: 40px; text-align: center; }
     </style>
 </head>
 <body>
 
-    <div id="game-toast"></div>
-    
     <div id="map"></div>
+    <div id="shot-overlay">
+        <div id="live-shot-counter">0 YDS</div>
+        <button id="shot-btn" onclick="toggleShotTrack()">START SHOT</button>
+    </div>
 
     <div id="map-actions">
-        <button class="map-sub-btn" onclick="snapToUser()" title="Center on Me">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="#333"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06z"/></svg>
-        </button>
-        <button id="clear-target-btn" class="map-sub-btn" style="display:none;" onclick="clearTarget()" title="Clear Target">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="#e74c3c"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-        </button>
+        <button class="map-sub-btn" onclick="snapToUser()"><svg viewBox="0 0 24 24" width="24" height="24" fill="#333"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06z"/></svg></button>
+        <button id="clear-target-btn" class="map-sub-btn" style="display:none;" onclick="clearTarget()"><svg viewBox="0 0 24 24" width="24" height="24" fill="#e74c3c"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
     </div>
 
     <div id="ui-container">
         <div class="logo-bar">
             <div style="display:flex; gap:5px;">
                 <div id="unit-toggle" class="util-btn" onclick="cycleUnits()">YDS</div>
-                <div id="mute-toggle" class="util-btn" onclick="toggleMute()">🔊</div>
+                <div id="bag-btn" class="util-btn" onclick="toggleBag(true)">🎒 MY BAG</div>
             </div>
             <div class="pixel-logo">MPENN GOLF</div>
-            <div id="live-total" class="util-btn" style="min-width:60px;">TOT: E</div>
+            <div id="live-total" class="util-btn">TOT: E</div>
         </div>
 
         <div class="card">
             <div style="display: flex; justify-content: space-between; text-align: center;">
                 <div style="flex: 1;"><div class="label">Actual</div><div id="dist-raw" class="big-number">--</div></div>
                 <div style="flex: 1; border-left: 1px solid #333; border-right: 1px solid #333;"><div class="label">Plays Like</div><div id="dist-plays" class="big-number">--</div></div>
-                <div style="flex: 1;"><div class="label">Slope</div><div id="slope-val" class="big-number" style="font-size: 22px; padding-top:14px;">0°</div></div>
+                <div style="flex: 1;"><div class="label">Slope</div><div id="slope-val" class="big-number" style="font-size: 20px; padding-top:10px;">0°</div></div>
+            </div>
+            <div id="caddy-box">
+                <span class="caddy-icon">⛳</span>
+                <div>
+                    <div class="label" style="margin:0">Caddy Suggestion:</div>
+                    <div id="club-recommendation" class="club-suggest">TAP MAP FOR TARGET</div>
+                </div>
             </div>
         </div>
 
         <div class="card">
-            <div style="margin-bottom: 10px;">
-                <span class="label" style="font-size:14px; color:white;">Hole <span id="hole-num">1</span></span>
+            <div style="margin-bottom: 8px;">
+                <span class="label" style="font-size:12px; color:white;">Hole <span id="hole-num">1</span></span>
                 <span id="edit-indicator" class="label" style="color:var(--accent); margin-left:10px; display:none;">(EDITING)</span>
             </div>
-            <div style="display:flex; gap:8px; margin-bottom: 20px;">
+            <div style="display:flex; gap:8px; margin-bottom: 15px;">
                 <button class="par-btn" onclick="setPar(3, this)">3</button>
                 <button class="par-btn active" onclick="setPar(4, this)">4</button>
                 <button class="par-btn" onclick="setPar(5, this)">5</button>
             </div>
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:15px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
                 <span class="label">Score</span>
                 <div style="display:flex; align-items:center; gap:20px;">
                     <button class="adjust-btn" onclick="adjustScore(-1)">−</button>
@@ -101,146 +101,156 @@
             <button id="finish-btn" class="main-btn" onclick="saveAndNext()">FINISH HOLE</button>
         </div>
 
-        <button class="main-btn" style="background:#444; color:white;" onclick="toggleScorecard(true)">VIEW SCORECARD</button>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <button class="main-btn" style="background:#444; color:white;" onclick="toggleScorecard(true)">SCORECARD</button>
+            <button class="main-btn" style="background:var(--accent); color:white;" onclick="downloadData()">EXPORT</button>
+        </div>
     </div>
 
-    <div id="scorecard-modal">
-        <span style="float:right; font-size:40px; padding: 10px;" onclick="toggleScorecard(false)">&times;</span>
+    <div id="bag-modal" class="modal">
+        <span style="float:right; font-size:40px; color:white;" onclick="toggleBag(false)">&times;</span>
+        <h2 style="color:var(--primary); font-family:'Press Start 2P'; font-size:14px; margin-top:40px;">My Bag Distances</h2>
+        <p class="label">Set your average carry in YDS</p>
+        <div id="bag-list"></div>
+        <button class="main-btn" style="margin-top:20px;" onclick="toggleBag(false)">SAVE & CLOSE</button>
+    </div>
+
+    <div id="scorecard-modal" class="modal">
+        <span style="float:right; font-size:40px; color:white;" onclick="toggleScorecard(false)">&times;</span>
         <h2 style="color:var(--primary); font-family: 'Press Start 2P', cursive; font-size: 14px; margin-top: 40px;">Scorecard</h2>
+        <div id="total-summary" style="font-size:18px; margin-bottom:15px; font-weight: bold;"></div>
         <table id="card-table"><thead><tr><th>Hole</th><th>Par</th><th>Score</th><th>+/-</th></tr></thead><tbody id="card-body"></tbody></table>
-        <button class="main-btn" style="background:var(--danger); color:white; font-family:'Press Start 2P'; font-size:10px;" onclick="confirmEndRound()">END ROUND</button>
+        <button class="main-btn" style="background:var(--danger); color:white; font-family:'Press Start 2P'; font-size:10px; margin-top:30px;" onclick="confirmEndRound()">RESET ROUND</button>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const map = L.map('map', { zoomControl: false, maxZoom: 22 }).setView([0,0], 2);
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 22, maxNativeZoom: 18 }).addTo(map);
+        const map = L.map('map', { zoomControl: false, maxZoom: 18, attributionControl: false }).setView([0,0], 2);
+        L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}.png', { subdomains: 'abcd' }).addTo(map);
 
-        let userPos, targetPos, userMarker, targetMarker, targetLine;
-        let currentPar = 4, currentScore = 4, currentUnit = 'YDS', activeEditHole = null, isMuted = false;
-        let roundData = { scores: [] };
+        let userPos, targetPos, userMarker, targetMarker, targetLine, shotStartPos;
+        let currentPar = 4, currentScore = 4, currentUnit = 'YDS', activeEditHole = null, isTrackingShot = false;
+        let roundData = { scores: [], shotLogs: [] };
+        let myBag = { "Driver": 250, "3 Wood": 220, "5 Wood": 200, "4 Iron": 185, "5 Iron": 175, "6 Iron": 165, "7 Iron": 155, "8 Iron": 145, "9 Iron": 135, "PW": 120, "GW": 110, "SW": 95, "LW": 80 };
 
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // PERSISTENCE
+        if (localStorage.getItem('penngolfRound')) roundData = JSON.parse(localStorage.getItem('penngolfRound'));
+        if (localStorage.getItem('penngolfBag')) myBag = JSON.parse(localStorage.getItem('penngolfBag'));
 
-        function toggleMute() { isMuted = !isMuted; document.getElementById('mute-toggle').innerText = isMuted ? '🔇' : '🔊'; }
+        function initBagUI() {
+            const list = document.getElementById('bag-list');
+            list.innerHTML = "";
+            Object.keys(myBag).forEach(club => {
+                list.innerHTML += `<div class="bag-row"><span>${club}</span><input type="number" value="${myBag[club]}" onchange="updateClubDist('${club}', this.value)"></div>`;
+            });
+        }
+        function updateClubDist(club, val) { myBag[club] = parseInt(val); localStorage.setItem('penngolfBag', JSON.stringify(myBag)); updateCalculations(); }
+        function toggleBag(show) { document.getElementById('bag-modal').style.display = show ? 'block' : 'none'; }
+        
+        async function updateCalculations() {
+            if (!userPos || !targetPos) return;
+            if (targetLine) map.removeLayer(targetLine);
+            targetLine = L.polyline([userPos, targetPos], {color: '#2ecc71', weight: 3, dashArray: '8, 12'}).addTo(map);
+            
+            const dist = map.distance(userPos, targetPos);
+            const conv = (d) => Math.round(currentUnit === 'YDS' ? d * 1.09361 : d);
+            document.getElementById('dist-raw').innerText = conv(dist);
 
-        function chiptune(type) {
-            if (isMuted) return;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'square';
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            const now = audioCtx.currentTime;
-            gain.gain.setValueAtTime(0.05, now);
-            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
-            if (type === 'good') { osc.frequency.setValueAtTime(523.25, now); osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.2); osc.start(); osc.stop(now + 0.3); } 
-            else if (type === 'par') { osc.frequency.setValueAtTime(587.33, now); osc.start(); osc.stop(now + 0.15); } 
-            else { osc.frequency.setValueAtTime(392.00, now); osc.frequency.exponentialRampToValueAtTime(196.00, now + 0.2); osc.start(); osc.stop(now + 0.25); }
+            let finalPlaysLike = dist;
+            try {
+                const res = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${userPos[0]},${targetPos[0]}&longitude=${userPos[1]},${targetPos[1]}`);
+                const data = await res.json();
+                const diff = data.elevation[1] - data.elevation[0];
+                const slope = (Math.atan(diff / dist) * (180 / Math.PI)).toFixed(1);
+                document.getElementById('slope-val').innerText = slope + "°";
+                finalPlaysLike = dist + (diff * 2.5);
+                document.getElementById('dist-plays').innerText = conv(finalPlaysLike);
+            } catch(e) { document.getElementById('dist-plays').innerText = conv(dist); }
+
+            // Club Recommendation Logic
+            const targetYardage = finalPlaysLike * 1.09361; // Always calculate logic in Yards
+            let bestClub = "No club found";
+            let closestDiff = 999;
+
+            Object.keys(myBag).forEach(club => {
+                let d = Math.abs(myBag[club] - targetYardage);
+                if (d < closestDiff) { closestDiff = d; bestClub = club; }
+            });
+            document.getElementById('club-recommendation').innerText = `PULL ${bestClub.toUpperCase()}`;
         }
 
-        function triggerRetroToast() {
-            const h = document.getElementById('game-toast');
-            const diff = currentScore - currentPar;
-            let text = "PAR"; let color = "var(--primary)"; let sound = 'par';
-            if (diff <= -1) { text = diff === -1 ? "BIRDIE!" : "EAGLE!"; color = diff === -1 ? "var(--primary)" : "var(--gold)"; sound = 'good'; }
-            else if (diff >= 1) { text = diff === 1 ? "BOGEY" : "OUCH"; color = "var(--danger)"; sound = 'bad'; }
-            h.innerText = text; h.style.color = color; h.style.display = "block"; h.classList.remove('toast-anim');
-            void h.offsetWidth; h.classList.add('toast-anim');
-            chiptune(sound);
-            setTimeout(() => { h.style.display = "none"; }, 2000);
-        }
-
-        function setPar(p, btn) { currentPar = p; currentScore = p; document.getElementById('h-score-display').innerText = currentScore; document.querySelectorAll('.par-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
+        // Standard Utility Functions
+        function setPar(p, btn) { currentPar = p; currentScore = p; document.getElementById('h-score-display').innerText = p; document.querySelectorAll('.par-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
         function adjustScore(v) { currentScore = Math.max(1, currentScore + v); document.getElementById('h-score-display').innerText = currentScore; }
-
         function saveAndNext() {
             if (activeEditHole) {
                 let idx = roundData.scores.findIndex(s => s.h === activeEditHole);
                 roundData.scores[idx] = { h: activeEditHole, par: currentPar, s: currentScore, diff: currentScore - currentPar };
                 activeEditHole = null;
             } else {
-                triggerRetroToast();
                 let h = roundData.scores.length + 1;
                 roundData.scores.push({ h, par: currentPar, s: currentScore, diff: currentScore - currentPar });
             }
+            localStorage.setItem('penngolfRound', JSON.stringify(roundData));
             updateUIForHole(roundData.scores.length + 1);
             updateGrandTotals();
         }
-
         function updateUIForHole(h) {
             document.getElementById('hole-num').innerText = h;
             const existing = roundData.scores.find(s => s.h === h);
-            if (existing) {
-                currentScore = existing.s; currentPar = existing.par;
-                document.getElementById('edit-indicator').style.display = 'inline';
-                document.getElementById('finish-btn').innerText = "SAVE EDIT";
-            } else {
-                currentScore = 4; currentPar = 4;
-                document.getElementById('edit-indicator').style.display = 'none';
-                document.getElementById('finish-btn').innerText = "FINISH HOLE";
-            }
+            document.getElementById('edit-indicator').style.display = existing ? 'inline' : 'none';
+            document.getElementById('finish-btn').innerText = existing ? "SAVE EDIT" : "FINISH HOLE";
+            currentScore = existing ? existing.s : 4; currentPar = existing ? existing.par : 4;
             document.getElementById('h-score-display').innerText = currentScore;
-            document.querySelectorAll('.par-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (parseInt(btn.innerText) === currentPar) btn.classList.add('active');
-            });
         }
-
-        function toggleScorecard(show) {
-            const m = document.getElementById('scorecard-modal');
-            if (show) {
-                const b = document.getElementById('card-body'); b.innerHTML = "";
-                roundData.scores.forEach(s => { b.innerHTML += `<tr onclick="editSpecificHole(${s.h})"><td>${s.h}</td><td>${s.par}</td><td>${s.s}</td><td>${s.diff > 0 ? '+'+s.diff : (s.diff===0?'E':s.diff)}</td></tr>`; });
-                m.style.display = "block";
-            } else m.style.display = "none";
+        function toggleScorecard(s) { document.getElementById('scorecard-modal').style.display = s ? 'block' : 'none'; if(s) renderScorecard(); }
+        function renderScorecard() {
+            const b = document.getElementById('card-body'); b.innerHTML = "";
+            roundData.scores.forEach(s => b.innerHTML += `<tr onclick="editSpecificHole(${s.h})"><td>${s.h}</td><td>${s.par}</td><td>${s.s}</td><td>${s.diff}</td></tr>`);
         }
-
         function editSpecificHole(h) { activeEditHole = h; toggleScorecard(false); updateUIForHole(h); }
-
         function updateGrandTotals() {
-            const tp = roundData.scores.reduce((a, b) => a + b.par, 0);
-            const ts = roundData.scores.reduce((a, b) => a + b.s, 0);
-            const d = ts - tp;
-            document.getElementById('live-total').innerText = `TOT: ${d > 0 ? '+' + d : (d === 0 ? 'E' : d)}`;
+            const d = roundData.scores.reduce((a, b) => a + b.diff, 0);
+            document.getElementById('live-total').innerText = `TOT: ${d > 0 ? '+'+d : (d===0?'E':d)}`;
         }
-
         function cycleUnits() { currentUnit = currentUnit === 'YDS' ? 'MTR' : 'YDS'; document.getElementById('unit-toggle').innerText = currentUnit; updateCalculations(); }
+        function snapToUser() { if (userPos) map.setView(userPos, 18); }
+        function clearTarget() { targetPos = null; if (targetMarker) map.removeLayer(targetMarker); if (targetLine) map.removeLayer(targetLine); document.getElementById('clear-target-btn').style.display = 'none'; }
+        
+        function toggleShotTrack() {
+            if (!userPos) return;
+            isTrackingShot = !isTrackingShot;
+            const btn = document.getElementById('shot-btn');
+            if (isTrackingShot) { shotStartPos = [...userPos]; btn.innerText = "END SHOT"; document.getElementById('live-shot-counter').style.display = "block"; }
+            else { btn.innerText = "START SHOT"; document.getElementById('live-shot-counter').style.display = "none"; }
+        }
 
         navigator.geolocation.watchPosition(pos => {
             userPos = [pos.coords.latitude, pos.coords.longitude];
-            if (!userMarker) { userMarker = L.circleMarker(userPos, {radius: 9, color: 'white', fillColor: '#3498db', fillOpacity: 1, weight: 3}).addTo(map); map.setView(userPos, 19); } 
+            if (!userMarker) { userMarker = L.circleMarker(userPos, {radius: 8, color: 'white', fillColor: '#3498db', fillOpacity:1}).addTo(map); map.setView(userPos, 18); }
             else userMarker.setLatLng(userPos);
-            updateCalculations();
+            if (isTrackingShot) {
+                const d = Math.round(map.distance(shotStartPos, userPos) * 1.09361);
+                document.getElementById('live-shot-counter').innerText = `${d} YDS`;
+            }
         }, null, { enableHighAccuracy: true });
 
         map.on('click', e => {
             targetPos = [e.latlng.lat, e.latlng.lng];
-            if (!targetMarker) targetMarker = L.circleMarker(targetPos, {radius: 7, color: '#2ecc71', fillColor: 'black', fillOpacity: 0.7, weight: 3}).addTo(map);
+            if (!targetMarker) targetMarker = L.circleMarker(targetPos, {radius: 6, color: '#2ecc71', fillColor: 'black', fillOpacity:0.8}).addTo(map);
             else targetMarker.setLatLng(targetPos);
             document.getElementById('clear-target-btn').style.display = 'flex';
             updateCalculations();
         });
 
-        function updateCalculations() {
-            if (!userPos || !targetPos) return;
-            if (targetLine) map.removeLayer(targetLine);
-            targetLine = L.polyline([userPos, targetPos], {color: '#2ecc71', weight: 3, dashArray: '8, 12'}).addTo(map);
-            const dist = map.distance(userPos, targetPos);
-            document.getElementById('dist-raw').innerText = Math.round(currentUnit === 'YDS' ? dist * 1.09361 : dist);
+        function downloadData() {
+            let t = "PENNGOLF MATCH\n" + roundData.scores.map(s => `H${s.h}: ${s.s}`).join("\n");
+            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t])); a.download = 'golf.txt'; a.click();
         }
-
-        function clearTarget() {
-            targetPos = null;
-            if (targetMarker) map.removeLayer(targetMarker);
-            if (targetLine) map.removeLayer(targetLine);
-            document.getElementById('clear-target-btn').style.display = 'none';
-            document.getElementById('dist-raw').innerText = "--";
-            document.getElementById('dist-plays').innerText = "--";
-        }
-
-        function snapToUser() { if (userPos) map.setView(userPos, 19); }
-        function confirmEndRound() { if(confirm("End round?")) location.reload(); }
+        function confirmEndRound() { if(confirm("Reset?")) { localStorage.removeItem('penngolfRound'); location.reload(); } }
+        
+        initBagUI();
+        updateUIForHole(1);
     </script>
 </body>
 </html>
