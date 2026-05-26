@@ -29,7 +29,8 @@
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
         .util-btn { background:#2a2a2a; padding:10px 12px; border-radius:12px; color:var(--primary); font-size: 11px; border: 1px solid #333; }
-        #shot-btn, .main-btn { background:var(--primary); color:black; border:none; padding:14px; border-radius:14px; font-weight:900; text-transform:uppercase; }
+        #shot-btn, .main-btn, .exit-btn { background:var(--primary); color:black; border:none; padding:14px; border-radius:14px; font-weight:900; text-transform:uppercase; }
+        .exit-btn { background:#e74c3c; color:white; margin-top:10px; }
         .card { background: var(--card); border-radius: 16px; padding: 18px; border: 1px solid #2a2a2a; margin-bottom: 12px; }
         .big-number { font-size: 42px; font-weight: 900; color: var(--primary); line-height: 1; letter-spacing: -2px; }
         .label { color: #777; font-size: 10px; text-transform: uppercase; font-weight: 800; margin-bottom: 6px; }
@@ -58,7 +59,7 @@
     <div id="map-container">
         <div id="map"></div>
         <div class="map-overlay-left">
-            <div id="live-shot-counter">0 YDS</div>
+            <div id="live-shot-counter">0 MTR</div>
             <button id="shot-btn" onclick="toggleShotTrack()">START SHOT</button>
             <div id="accuracy-info" style="font-size:9px;color:#888;"></div>
         </div>
@@ -72,14 +73,13 @@
     <div id="ui-container" style="height:62vh;padding:15px;overflow-y:auto;padding-bottom:140px;">
         <div class="logo-bar">
             <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                <button id="unit-toggle" class="util-btn" onclick="cycleUnits()">YDS</button>
+                <button id="unit-toggle" class="util-btn" onclick="cycleUnits()">MTR</button>
                 <button class="record-btn" onclick="toggleTracer(true)">SHOT TRACER</button>
             </div>
             <div class="pixel-logo">PENNGOLF PRO</div>
             <div id="live-total" class="util-btn" style="color:var(--gold)">TOT: E</div>
         </div>
 
-        <!-- Distance Card (kept) -->
         <div class="card">
             <div style="display: flex; justify-content: space-between; text-align: center;">
                 <div style="flex:1;"><div class="label">Actual</div><div id="dist-raw" class="big-number">--</div></div>
@@ -88,7 +88,6 @@
             </div>
         </div>
 
-        <!-- Hole Scoring Card -->
         <div class="card">
             <div style="margin-bottom:12px;display:flex;justify-content:space-between;">
                 <span class="label">Hole <span id="hole-num">1</span></span>
@@ -116,7 +115,7 @@
         </div>
     </div>
 
-    <!-- SCORE CARD MODAL -->
+    <!-- Scorecard Modal -->
     <div id="scorecard-modal" class="modal">
         <span style="float:right;font-size:40px;color:#555;cursor:pointer;" onclick="toggleScorecard(false)">×</span>
         <h2 style="color:var(--primary);font-family:'Press Start 2P';font-size:11px;margin-top:30px;">SCORECARD</h2>
@@ -128,7 +127,7 @@
         <button class="main-btn" style="background:#333;margin-top:30px;" onclick="confirmEndRound()">RESET ROUND</button>
     </div>
 
-    <!-- TRACER MODAL -->
+    <!-- TRACER MODAL with Extra Exit Button -->
     <div id="tracer-modal">
         <div style="padding:12px;display:flex;justify-content:space-between;background:#111;position:sticky;top:0;z-index:10;">
             <span style="color:var(--primary);font-family:'Press Start 2P';">SHOT TRACER</span>
@@ -142,19 +141,24 @@
             <button id="tracer-record-btn" onclick="toggleLiveRecording()" style="background:var(--primary);padding:16px;">START LIVE RECORD + TRACE</button>
             <button onclick="clearTrace()" style="background:#333;">CLEAR TRACE</button>
             <button onclick="saveTracedVideo()" style="background:var(--gold);color:black;">EXPORT VIDEO</button>
+            
+            <!-- New Prominent Exit Button -->
+            <button class="exit-btn" onclick="toggleTracer(false)">EXIT TRACER</button>
+            
             <div id="tracer-status" style="font-family:'Press Start 2P';font-size:9px;color:#aaa;text-align:center;">Hold steady • Live trace activates on record</div>
         </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        // Full functional code with default Meters + fixed unit toggle
         const map = L.map('map', { zoomControl: false, maxZoom: 22, attributionControl: false, rotate: true }).setView([0,0], 2);
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxNativeZoom: 19, maxZoom: 22 }).addTo(map);
         L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{y}/{x}', { opacity: 0.35, maxNativeZoom: 19, maxZoom: 22 }).addTo(map);
 
         let userPos = null, targetPos = null, userMarker = null, targetMarker = null, targetLine = null;
         let positionHistory = [];
-        let currentPar = 4, currentScore = 4, currentUnit = 'YDS';
+        let currentPar = 4, currentScore = 4, currentUnit = 'MTR'; // Default to Meters
         let activeEditHole = null, isTrackingShot = false, shotStartPos = null;
         let roundData = JSON.parse(localStorage.getItem('penngolfRound')) || { scores: [], shotLogs: [] };
 
@@ -214,7 +218,9 @@
             document.getElementById('dist-plays').innerText = convDist(playsLikeRaw);
         }
 
-        function convDist(d) { return Math.round(currentUnit === 'YDS' ? d * 1.09361 : d); }
+        function convDist(d) {
+            return Math.round(currentUnit === 'YDS' ? d * 1.09361 : d);
+        }
 
         function clearTarget() {
             targetPos = null;
@@ -312,6 +318,10 @@
         function cycleUnits() {
             currentUnit = currentUnit === 'YDS' ? 'MTR' : 'YDS';
             document.getElementById('unit-toggle').innerText = currentUnit;
+            if (targetPos) updateCalculations();
+            if (isTrackingShot && shotStartPos) {
+                document.getElementById('live-shot-counter').innerText = `${convDist(map.distance(shotStartPos, userPos))} ${currentUnit}`;
+            }
         }
 
         function resetNorth() { map.setBearing(0); }
