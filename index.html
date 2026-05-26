@@ -154,7 +154,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // ==================== MAP & GPS ====================
+        // Full working code with all features restored
         const map = L.map('map', { zoomControl: false, maxZoom: 22, attributionControl: false, rotate: true }).setView([0,0], 2);
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxNativeZoom: 19, maxZoom: 22 }).addTo(map);
         L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{y}/{x}', { opacity: 0.35, maxNativeZoom: 19, maxZoom: 22 }).addTo(map);
@@ -357,4 +357,110 @@
                     row.onclick = () => editHole(s.h);
                     tbody.appendChild(row);
                 });
-                const total = round
+                const total = roundData.scores.reduce((a,b)=>a+b.diff,0);
+                document.getElementById('total-summary').innerText = `TOTAL: ${total>0?'+'+total:(total===0?'EVEN':total)}`;
+            }
+        }
+
+        function editHole(h) {
+            toggleScorecard(false);
+            activeEditHole = h;
+            updateUIForHole(h);
+        }
+
+        function confirmEndRound() {
+            if (confirm("Reset entire round?")) {
+                localStorage.removeItem('penngolfRound');
+                location.reload();
+            }
+        }
+
+        // Live Tracer
+        let tracerStream = null, mediaRecorder = null, recordedChunks = [], tracePoints = [], isRecording = false, animationFrame = null;
+        const tracerVideo = document.getElementById('tracer-video');
+        const tracerCanvas = document.getElementById('tracer-canvas');
+        const tCtx = tracerCanvas.getContext('2d', {willReadFrequently: true});
+
+        async function startTracerCamera() {
+            if (tracerStream) tracerStream.getTracks().forEach(t => t.stop());
+            tracerStream = await navigator.mediaDevices.getUserMedia({video: {facingMode: 'environment', width: {ideal:1280}, height: {ideal:720}}});
+            tracerVideo.srcObject = tracerStream;
+            await tracerVideo.play();
+            tracerCanvas.width = tracerVideo.videoWidth || 1280;
+            tracerCanvas.height = tracerVideo.videoHeight || 720;
+        }
+
+        window.toggleTracer = async (show) => {
+            document.getElementById('tracer-modal').style.display = show ? 'block' : 'none';
+            if (show) await startTracerCamera();
+            else if (tracerStream) tracerStream.getTracks().forEach(t => t.stop());
+        };
+
+        window.toggleLiveRecording = () => {
+            if (!isRecording) {
+                recordedChunks = [];
+                mediaRecorder = new MediaRecorder(tracerStream, {mimeType: 'video/mp4'});
+                mediaRecorder.ondataavailable = e => recordedChunks.push(e.data);
+                mediaRecorder.start(100);
+                isRecording = true;
+                tracePoints = [];
+                document.getElementById('tracer-record-btn').innerText = 'STOP RECORDING';
+                document.getElementById('tracer-record-btn').style.background = '#e74c3c';
+                startLiveTracing();
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                document.getElementById('tracer-record-btn').innerText = 'START LIVE RECORD + TRACE';
+                document.getElementById('tracer-record-btn').style.background = '';
+                cancelAnimationFrame(animationFrame);
+            }
+        };
+
+        function startLiveTracing() {
+            function process() {
+                tCtx.drawImage(tracerVideo, 0, 0, tracerCanvas.width, tracerCanvas.height);
+                const data = tCtx.getImageData(0,0,tracerCanvas.width,tracerCanvas.height).data;
+                let bestX = -1, bestY = -1, bestB = 0;
+                for (let i = 0; i < data.length; i += 16) {
+                    const r = data[i], g = data[i+1], b = data[i+2];
+                    const br = (r + g + b) / 3;
+                    if (br > 210 && Math.abs(r-g) < 40 && Math.abs(g-b) < 40 && br > bestB) {
+                        bestB = br;
+                        bestX = (i/4) % tracerCanvas.width;
+                        bestY = Math.floor((i/4) / tracerCanvas.width);
+                    }
+                }
+                if (bestX > 0) {
+                    if (tracePoints.length === 0 || Math.hypot(bestX - tracePoints[tracePoints.length-1].x, bestY - tracePoints[tracePoints.length-1].y) > 8) {
+                        tracePoints.push({x: bestX, y: bestY});
+                    }
+                }
+                tCtx.strokeStyle = '#f1c40f';
+                tCtx.lineWidth = 8;
+                tCtx.shadowBlur = 30;
+                tCtx.shadowColor = '#f1c40f';
+                tCtx.beginPath();
+                tracePoints.forEach((p,i) => i===0 ? tCtx.moveTo(p.x,p.y) : tCtx.lineTo(p.x,p.y));
+                tCtx.stroke();
+                animationFrame = requestAnimationFrame(process);
+            }
+            process();
+        }
+
+        window.clearTrace = () => { tracePoints = []; tCtx.clearRect(0,0,tracerCanvas.width,tracerCanvas.height); };
+        window.saveTracedVideo = () => {
+            if (recordedChunks.length) {
+                const blob = new Blob(recordedChunks, {type:'video/mp4'});
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `shot-trace-${Date.now()}.mp4`;
+                a.click();
+            }
+        };
+
+        // Initialize
+        updateUIForHole(roundData.scores.length + 1);
+        updateGrandTotals();
+    </script>
+</body>
+</html>
